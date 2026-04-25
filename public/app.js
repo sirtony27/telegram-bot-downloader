@@ -13,6 +13,8 @@ function navigate(tab) {
   document.getElementById(`page-${tab}`).classList.add('active');
   document.getElementById(`tab-${tab}`).classList.add('active');
   document.getElementById(`tab-${currentTab}`).querySelector('i').classList.replace('ph', 'ph-fill');
+
+  if (tab === 'history') loadHistory();
 }
 
 /* ── Status ──────────────────────────────────────────────────────────────── */
@@ -260,6 +262,31 @@ async function loadHistory() {
 
 function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── Storage Management ──────────────────────────────────────────────────── */
+async function clearTempStorage() {
+  const btn = document.getElementById('btn-clear-temp');
+  if (!confirm('¿Estás seguro de vaciar el almacenamiento temporal? Esto borrará los videos y stickers que no hayas descargado aún.')) return;
+
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<i class="ph ph-spinner-gap ph-spin"></i> Vaciando…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/clear-temp', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      alert(`¡Limpieza completada!\nSe liberaron ${data.freedMb} MB de almacenamiento temporal.`);
+    } else {
+      alert('Error al limpiar caché: ' + data.error);
+    }
+  } catch (err) {
+    alert('Error de conexión.');
+  } finally {
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+  }
 }
 
 /* ── PWA Install ─────────────────────────────────────────────────────────── */

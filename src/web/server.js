@@ -159,6 +159,25 @@ export async function createWebServer(botInfo) {
     }
   });
 
+  /** Limpiar caché manual */
+  app.post('/api/clear-temp', async (_req, res) => {
+    try {
+      const files = await readdir(WEB_TEMP_DIR);
+      let freedBytes = 0;
+      for (const file of files) {
+        const filePath = path.join(WEB_TEMP_DIR, file);
+        try {
+          const stats = await import('node:fs/promises').then(fs => fs.stat(filePath));
+          freedBytes += stats.size;
+          await unlink(filePath);
+        } catch { /* ignore if deleted */ }
+      }
+      res.json({ success: true, freedMb: (freedBytes / 1024 / 1024).toFixed(2) });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // SPA fallback (compatible con Express 5 / path-to-regexp v8+)
   app.use((_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
