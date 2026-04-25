@@ -159,8 +159,8 @@ export async function createWebServer(botInfo) {
     }
   });
 
-  // SPA fallback
-  app.get('*', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
+  // SPA fallback (compatible con Express 5 / path-to-regexp v8+)
+  app.use((_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
   // ─── Start ────────────────────────────────────────────────────────────────
   app.listen(config.webPort, '0.0.0.0', () => {
