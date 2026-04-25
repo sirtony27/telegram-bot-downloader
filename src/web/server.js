@@ -163,16 +163,15 @@ export async function createWebServer(botInfo) {
 
       if (config.cookiesFile) args.push('--cookies', config.cookiesFile);
       if (config.ytdlpProxy)  args.push('--proxy', config.ytdlpProxy);
-      args.push('--newline');
       args.push('--no-color'); // Evitar ANSI color codes en el stdout
       args.push(url);
 
       // Descarga real con progreso SSE
       const onProgress = (dataStr) => {
         if (clientId && progressClients.has(clientId)) {
-          const match = dataStr.match(/\[download\]\s+([\d\.]+)%/);
-          if (match) {
-            progressClients.get(clientId)({ percent: match[1] });
+          const matches = [...dataStr.matchAll(/\[download\]\s+([\d\.]+)%/g)];
+          if (matches.length > 0) {
+            progressClients.get(clientId)({ percent: matches[matches.length - 1][1] });
           }
         }
       };
