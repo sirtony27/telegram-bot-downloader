@@ -19,10 +19,10 @@ export const WEB_TEMP_DIR = path.join(config.tempDir, "web");
 /** Tiempo de vida de los archivos temporales (30 minutos) */
 const TEMP_TTL_MS = 30 * 60 * 1000;
 
-/** Multer: archivos en memoria, máx 10MB */
+/** Multer: archivos en memoria, máx 50MB */
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
 
 /** Marca el archivo para eliminación automática después del TTL */
