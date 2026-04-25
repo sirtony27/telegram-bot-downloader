@@ -143,6 +143,9 @@ export async function createWebServer(getBotUsername = () => undefined) {
       ];
       if (config.cookiesFile) infoArgs.push("--cookies", config.cookiesFile);
       if (config.ytdlpProxy) infoArgs.push("--proxy", config.ytdlpProxy);
+      if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        infoArgs.push("--extractor-args", "youtube:player_client=ios,web");
+      }
 
       infoArgs.push(url);
 
@@ -217,6 +220,9 @@ export async function createWebServer(getBotUsername = () => undefined) {
 
       if (config.cookiesFile) args.push("--cookies", config.cookiesFile);
       if (config.ytdlpProxy) args.push("--proxy", config.ytdlpProxy);
+      if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        args.push("--extractor-args", "youtube:player_client=ios,web");
+      }
 
       args.push("--no-color"); // Evitar ANSI color codes en el stdout
       args.push(url);

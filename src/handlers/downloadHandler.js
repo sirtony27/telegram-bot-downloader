@@ -72,6 +72,10 @@ export async function handleDownload(ctx, url) {
   if (isTikTok(url)) {
     ytdlpArgs.push("--extractor-args", "tiktok:app_name=tiktok_web");
   }
+  if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    ytdlpArgs.push("--extractor-args", "youtube:player_client=ios,web");
+  }
+
   if (isInstagram(url)) {
     ytdlpArgs.push(
       "--add-header",
