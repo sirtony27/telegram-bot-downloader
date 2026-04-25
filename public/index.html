@@ -162,6 +162,38 @@
       <img id="sticker-preview" class="preview-img" alt="Vista previa">
       <video id="sticker-video-preview" class="preview-img" autoplay loop muted playsinline style="display:none;"></video>
 
+      <!-- Editor Panel (Oculto por defecto) -->
+      <div id="sticker-editor" class="editor-panel" style="display:none; margin-top:16px; background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.1);">
+        <h3 style="font-size: 14px; margin-bottom: 16px; color: var(--text-muted); display:flex; align-items:center; gap:6px;"><i class="ph ph-sliders"></i> Ajustes de Video</h3>
+        
+        <div class="editor-row" style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <label for="sticker-speed" style="font-size: 14px;">Velocidad:</label>
+          <select id="sticker-speed" class="input-field" style="width: auto; padding: 6px 12px; border-radius: 8px;">
+            <option value="0.5">0.5x (Lento)</option>
+            <option value="1" selected>1.0x (Normal)</option>
+            <option value="1.5">1.5x (Rápido)</option>
+            <option value="2">2.0x (Muy Rápido)</option>
+            <option value="3">3.0x (Extremo)</option>
+          </select>
+        </div>
+        
+        <div class="editor-row" style="margin-bottom: 16px;">
+          <div style="display:flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px;">
+            <label>Inicio:</label>
+            <span id="lbl-start">0.0s</span>
+          </div>
+          <input type="range" id="sticker-start" min="0" max="100" step="0.1" value="0" style="width: 100%; accent-color: var(--primary);">
+        </div>
+        
+        <div class="editor-row">
+          <div style="display:flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px;">
+            <label>Duración (max 6s):</label>
+            <span id="lbl-duration">6.0s</span>
+          </div>
+          <input type="range" id="sticker-duration" min="0.5" max="6" step="0.1" value="6" style="width: 100%; accent-color: var(--primary);">
+        </div>
+      </div>
+
       <button class="btn btn-primary" id="sticker-btn" onclick="convertSticker()" disabled>
         <i class="ph ph-magic-wand"></i>
         <span>Procesar Sticker</span>

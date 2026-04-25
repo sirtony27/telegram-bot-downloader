@@ -137,23 +137,44 @@ export async function convertToWhatsappAnimatedWebp(
   inputPath,
   outputPath,
   quality = 70,
+  options = {}
 ) {
-  await runFfmpeg([
-    "-y",
-    "-i",
-    inputPath,
-    "-t",
-    "6", // Máximo 6 segundos (límite WhatsApp)
+  const { startTime = 0, duration = 6, speed = 1 } = options;
+  const args = ["-y"];
+
+  if (startTime > 0) {
+    args.push("-ss", String(startTime));
+  }
+
+  args.push("-i", inputPath);
+
+  // WhatsApp limit is 6s. So max input duration is 6 * speed.
+  const inputDurationLimit = 6 * speed;
+  const finalDuration = Math.min(inputDurationLimit, duration || inputDurationLimit);
+  args.push("-t", String(finalDuration));
+
+  let vfFilter = "scale=512:512:force_original_aspect_ratio=decrease";
+  let fps = 15;
+
+  if (speed !== 1) {
+    vfFilter += `,setpts=${1 / speed}*PTS`;
+    // If sped up, we might need more fps to look smooth, cap at 30.
+    fps = Math.min(30, Math.round(15 * speed));
+  }
+  vfFilter += `,fps=${fps}`;
+
+  args.push(
     "-vf",
-    // Escalar para que el lado más largo sea 512 (sin padding), 15fps para reducir tamaño
-    "scale=512:512:force_original_aspect_ratio=decrease,fps=15",
+    vfFilter,
     "-c:v",
-    "libwebp", // Encoder WebP animado
+    "libwebp",
     "-loop",
-    "0", // Loop infinito
+    "0",
     "-quality",
-    String(quality), // Calidad ajustable
-    "-an", // Sin audio
-    outputPath,
-  ]);
+    String(quality),
+    "-an",
+    outputPath
+  );
+
+  await runFfmpeg(args);
 }

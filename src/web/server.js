@@ -289,6 +289,9 @@ export async function createWebServer(getBotUsername = () => undefined) {
   /** Convierte una imagen o video a sticker para Telegram o WhatsApp */
   app.post("/api/sticker", upload.single("image"), async (req, res) => {
     const type = req.body?.type ?? "whatsapp"; // 'telegram' | 'whatsapp'
+    const startTime = parseFloat(req.body?.startTime) || 0;
+    const duration = parseFloat(req.body?.duration) || 6;
+    const speed = parseFloat(req.body?.speed) || 1;
 
     if (!req.file)
       return res
@@ -310,7 +313,11 @@ export async function createWebServer(getBotUsername = () => undefined) {
         try {
           // Actualmente solo soportamos conversión de video a WebP animado para WhatsApp.
           // Para telegram habría que hacer convertVideoToStickerWebm. Como UX pide WhatsApp, forzamos esto:
-          await convertToWhatsappAnimatedWebp(tempVideo, filePath);
+          await convertToWhatsappAnimatedWebp(tempVideo, filePath, 70, {
+            startTime,
+            duration,
+            speed
+          });
         } finally {
           unlink(tempVideo).catch(() => {});
         }

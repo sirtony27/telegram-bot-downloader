@@ -248,11 +248,23 @@ function onFileSelected() {
   if (file.type.startsWith("video/")) {
     vidPreview.src = objUrl;
     vidPreview.style.display = "block";
-    // Pequeño timeout para que se aplique el display block antes de animar
+    document.getElementById("sticker-editor").style.display = "block";
+    
+    // Update slider max when video loads
+    vidPreview.onloadedmetadata = () => {
+      const startSlider = document.getElementById("sticker-start");
+      startSlider.max = Math.max(0, vidPreview.duration).toFixed(1);
+      startSlider.value = 0;
+      document.getElementById("lbl-start").textContent = "0.0s";
+      document.getElementById("sticker-duration").value = Math.min(6, vidPreview.duration).toFixed(1);
+      document.getElementById("lbl-duration").textContent = document.getElementById("sticker-duration").value + "s";
+    };
+    
     setTimeout(() => vidPreview.classList.add("visible"), 10);
   } else {
     imgPreview.src = objUrl;
     imgPreview.style.display = "block";
+    document.getElementById("sticker-editor").style.display = "none";
     setTimeout(() => imgPreview.classList.add("visible"), 10);
   }
 
@@ -299,8 +311,15 @@ async function convertSticker() {
 
   try {
     const form = new FormData();
-    form.append("image", file);
     form.append("type", stickerType);
+    
+    if (file.type.startsWith("video/")) {
+      form.append("speed", document.getElementById("sticker-speed").value);
+      form.append("startTime", document.getElementById("sticker-start").value);
+      form.append("duration", document.getElementById("sticker-duration").value);
+    }
+    
+    form.append("image", file);
 
     const res = await fetch("/api/sticker", { method: "POST", body: form });
     const data = await res.json();
@@ -405,6 +424,14 @@ function installPwa() {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
+
+// Editor UI Listeners
+document.getElementById("sticker-start").addEventListener("input", (e) => {
+  document.getElementById("lbl-start").textContent = parseFloat(e.target.value).toFixed(1) + "s";
+});
+document.getElementById("sticker-duration").addEventListener("input", (e) => {
+  document.getElementById("lbl-duration").textContent = parseFloat(e.target.value).toFixed(1) + "s";
+});
 
 /* ── Init ────────────────────────────────────────────────────────────────── */
 loadStatus();
