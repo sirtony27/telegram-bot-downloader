@@ -82,6 +82,7 @@ function resetDownloader() {
   document.getElementById('dl-step2').style.display = 'none';
   document.getElementById('dl-result').classList.remove('visible');
   document.getElementById('dl-error').classList.remove('visible');
+  document.getElementById('dl-progress-container').style.display = 'none';
 }
 
 async function analyzeUrl() {
@@ -125,6 +126,10 @@ async function analyzeUrl() {
     }
 
     document.getElementById('dl-step2').style.display = 'block';
+    // Auto-scroll al paso 2
+    setTimeout(() => {
+      document.getElementById('dl-step2').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
   } catch (err) {
     errEl.textContent = '❌ ' + err.message;
     errEl.classList.add('visible');
@@ -142,17 +147,36 @@ async function startDownload() {
   const btn = document.getElementById('dl-btn');
   const result = document.getElementById('dl-result');
   const errEl = document.getElementById('dl-error');
+  const progContainer = document.getElementById('dl-progress-container');
+  const progFill = document.getElementById('dl-progress-fill');
+  const progText = document.getElementById('dl-progress-text');
 
   result.classList.remove('visible');
   errEl.classList.remove('visible');
   btn.disabled = true;
   btn.innerHTML = '<i class="ph ph-spinner-gap ph-spin"></i> Descargando…';
+  
+  progContainer.style.display = 'block';
+  progFill.style.width = '0%';
+  progText.textContent = '0%';
+
+  const clientId = crypto.randomUUID();
+  const es = new EventSource(`/api/progress/${clientId}`);
+  es.onmessage = (e) => {
+    try {
+      const pData = JSON.parse(e.data);
+      if (pData.percent) {
+        progFill.style.width = `${pData.percent}%`;
+        progText.textContent = `${pData.percent}%`;
+      }
+    } catch { /* ignore parse error */ }
+  };
 
   try {
     const res = await fetch('/api/download', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, format }),
+      body: JSON.stringify({ url, format, clientId }),
     });
     const data = await res.json();
 
@@ -163,12 +187,19 @@ async function startDownload() {
     link.href = data.downloadUrl;
     link.download = data.filename;
     result.classList.add('visible');
+
+    // Auto-scroll al resultado final
+    setTimeout(() => {
+      document.getElementById('dl-result').scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 50);
   } catch (err) {
     errEl.textContent = '❌ ' + err.message;
     errEl.classList.add('visible');
   } finally {
+    es.close();
     btn.disabled = false;
     btn.innerHTML = '<i class="ph ph-download-simple"></i> <span>Descargar Selección</span>';
+    progContainer.style.display = 'none';
   }
 }
 

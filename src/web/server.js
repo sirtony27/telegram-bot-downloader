@@ -57,6 +57,22 @@ export async function createWebServer(botInfo) {
 
   // ─── API ──────────────────────────────────────────────────────────────────
 
+  const progressClients = new Map();
+
+  app.get('/api/progress/:clientId', (req, res) => {
+    const { clientId } = req.params;
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+    
+    const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+    progressClients.set(clientId, sendEvent);
+
+    req.on('close', () => progressClients.delete(clientId));
+  });
+
   /** Estado del bot */
   app.get('/api/status', (_req, res) => {
     res.json({
@@ -112,7 +128,7 @@ export async function createWebServer(botInfo) {
 
   /** Descarga un video por URL y Formato */
   app.post('/api/download', async (req, res) => {
-    const { url, format } = req.body ?? {};
+    const { url, format, clientId } = req.body ?? {};
     if (!url) return res.status(400).json({ success: false, error: 'URL requerida' });
 
     const uuid = randomUUID();
@@ -143,10 +159,20 @@ export async function createWebServer(botInfo) {
 
       if (config.cookiesFile) args.push('--cookies', config.cookiesFile);
       if (config.ytdlpProxy)  args.push('--proxy', config.ytdlpProxy);
+      args.push('--newline');
       args.push(url);
 
-      // Descarga real
-      await runYtDlp(args);
+      // Descarga real con progreso SSE
+      const onProgress = (dataStr) => {
+        if (clientId && progressClients.has(clientId)) {
+          const match = dataStr.match(/\[download\]\s+([\d\.]+)%/);
+          if (match) {
+            progressClients.get(clientId)({ percent: match[1] });
+          }
+        }
+      };
+
+      await runYtDlp(args, config.ytdlpTimeoutMs, onProgress);
 
       // Encontrar los archivos descargados con el UUID
       const files = await readdir(WEB_TEMP_DIR);
@@ -260,6 +286,30 @@ export async function createWebServer(botInfo) {
   app.listen(config.webPort, '0.0.0.0', () => {
     logger.info(`[web] Servidor PWA en ${config.webBaseUrl} (puerto ${config.webPort})`);
   });
+
+  // --- Garbage Collection de temporales (cada 1 hora) ---
+  const cleanupTempFiles = async () => {
+    try {
+      const files = await readdir(WEB_TEMP_DIR);
+      const now = Date.now();
+      let count = 0;
+      for (const file of files) {
+        const filePath = path.join(WEB_TEMP_DIR, file);
+        try {
+          const stats = await import('node:fs/promises').then(fs => fs.stat(filePath));
+          if (now - stats.mtimeMs > 3600000) { // 1 hora
+            await unlink(filePath);
+            count++;
+          }
+        } catch { /* ignore */ }
+      }
+      if (count > 0) logger.info(`[web/cleanup] Eliminados ${count} archivos temporales antiguos.`);
+    } catch (err) {
+      logger.error('[web/cleanup] Error:', err.message);
+    }
+  };
+  setInterval(cleanupTempFiles, 3600000);
+  setTimeout(cleanupTempFiles, 10000); // Ejecutar limpieza inicial a los 10s de arrancar
 
   return app;
 }

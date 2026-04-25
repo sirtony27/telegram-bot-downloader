@@ -14,7 +14,7 @@ import { logger } from './logger.js';
  * @returns {Promise<string>} stdout del proceso yt-dlp.
  * @throws {Error} Si yt-dlp falla, es cancelado por timeout, o el proceso termina con error.
  */
-export function runYtDlp(args, timeoutMs = config.ytdlpTimeoutMs) {
+export function runYtDlp(args, timeoutMs = config.ytdlpTimeoutMs, onProgress = null) {
   return new Promise((resolve, reject) => {
     let timedOut = false;
 
@@ -30,6 +30,12 @@ export function runYtDlp(args, timeoutMs = config.ytdlpTimeoutMs) {
 
       resolve(stdout);
     });
+
+    if (onProgress && child.stdout) {
+      child.stdout.on('data', (data) => {
+        onProgress(data.toString());
+      });
+    }
 
     // Implementar timeout manualmente para poder matar el proceso hijo
     const timer = setTimeout(() => {

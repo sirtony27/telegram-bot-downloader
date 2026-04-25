@@ -119,6 +119,16 @@
           <i class="ph ph-download-simple"></i>
           <span>Descargar Selección</span>
         </button>
+
+        <div id="dl-progress-container" style="display: none; margin-top: 16px;">
+          <div class="progress-bar-bg" style="background: var(--surface-1); border-radius: 8px; height: 8px; overflow: hidden; position: relative;">
+            <div id="dl-progress-fill" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: var(--text-muted);">
+            <span>Descargando y procesando...</span>
+            <span id="dl-progress-text" style="font-weight: 600; font-variant-numeric: tabular-nums;">0%</span>
+          </div>
+        </div>
       </div>
 
       <div id="dl-result" class="result-card">
