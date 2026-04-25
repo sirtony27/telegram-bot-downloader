@@ -64,8 +64,12 @@ export async function createWebServer(botInfo) {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no' // Evita que NGINX o proxies retengan los eventos
     });
+    
+    // Enviar un ping inicial para abrir el stream de inmediato
+    res.write(`data: {"connected": true}\n\n`);
     
     const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
     progressClients.set(clientId, sendEvent);
@@ -160,6 +164,7 @@ export async function createWebServer(botInfo) {
       if (config.cookiesFile) args.push('--cookies', config.cookiesFile);
       if (config.ytdlpProxy)  args.push('--proxy', config.ytdlpProxy);
       args.push('--newline');
+      args.push('--no-color'); // Evitar ANSI color codes en el stdout
       args.push(url);
 
       // Descarga real con progreso SSE
