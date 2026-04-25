@@ -66,6 +66,12 @@ export const config = {
   /** Tamaño máximo de archivo que yt-dlp puede descargar (en MB) */
   maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB || '50', 10),
 
+  /**
+   * Ruta opcional a un archivo Netscape cookies.txt para autenticar yt-dlp.
+   * Requerido para YouTube e Instagram desde IPs de servidor.
+   */
+  cookiesFile: process.env.COOKIES_FILE || null,
+
   /** Timeout para operaciones de yt-dlp (en milisegundos) */
   ytdlpTimeoutMs: parseInt(process.env.YTDLP_TIMEOUT_MS || '120000', 10),
 

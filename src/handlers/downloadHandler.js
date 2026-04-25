@@ -63,8 +63,12 @@ export async function handleDownload(ctx, url) {
     ytdlpArgs.push('--extractor-args', 'tiktok:app_name=tiktok_web');
   }
   if (isInstagram(url)) {
-    // Instagram requiere cookies en algunos casos; al menos usar un User-Agent compatible
     ytdlpArgs.push('--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+  }
+
+  // Pasar cookies si están configuradas (necesario para YouTube e Instagram desde servidores)
+  if (config.cookiesFile) {
+    ytdlpArgs.push('--cookies', config.cookiesFile);
   }
 
   ytdlpArgs.push(url);
@@ -134,6 +138,8 @@ export async function handleDownload(ctx, url) {
       userMessage = '⏱ La descarga tardó demasiado y fue cancelada. Intentá con otro video.';
     } else if (err.message.includes('max-filesize') || err.message.includes('File is too large')) {
       userMessage = `❌ El video supera el límite de ${config.maxFileSizeMb} MB y no se puede descargar.`;
+    } else if (err.message.includes('Sign in') || err.message.includes('login required') || err.message.includes('cookies')) {
+      userMessage = '🔐 Este sitio requiere autenticación para descargar desde servidores. Configurá el archivo de cookies (COOKIES_FILE en .env).';
     } else if (err.message.includes('yt-dlp falló')) {
       userMessage = '❌ No se pudo descargar el video. Verificá que la URL sea válida y que el contenido sea público.';
     } else if (err.message.includes('No se pudo iniciar yt-dlp')) {
