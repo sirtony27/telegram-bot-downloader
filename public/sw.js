@@ -1,4 +1,4 @@
-const CACHE = 'mediahub-v2';
+const CACHE = 'mediahub-v4';
 const ASSETS = ['/', '/style.css', '/app.js', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', e =>

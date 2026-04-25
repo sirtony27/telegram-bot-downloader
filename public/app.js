@@ -126,9 +126,9 @@ async function analyzeUrl() {
     }
 
     document.getElementById('dl-step2').style.display = 'block';
-    // Auto-scroll al paso 2
+    // Auto-scroll al botón de descargar
     setTimeout(() => {
-      document.getElementById('dl-step2').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.getElementById('dl-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 50);
   } catch (err) {
     errEl.textContent = '❌ ' + err.message;
@@ -190,7 +190,7 @@ async function startDownload() {
 
     // Auto-scroll al resultado final
     setTimeout(() => {
-      document.getElementById('dl-result').scrollIntoView({ behavior: 'smooth', block: 'end' });
+      document.getElementById('dl-result').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 50);
   } catch (err) {
     errEl.textContent = '❌ ' + err.message;
