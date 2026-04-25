@@ -193,19 +193,24 @@ export async function handleAnimatedSticker(ctx) {
  * @param {import('grammy').InputFile} inputFile
  * @param {string} caption
  */
-async function sendStickerWithDownloadLink(ctx, inputFile, caption) {
-  const sentMsg = await ctx.replyWithDocument(inputFile, { caption });
+async function sendStickerWithDownloadLink(ctx, inputFile, _caption) {
+  // Subir el archivo a Telegram para obtener el file_id (necesario para generar la URL)
+  const sentMsg = await ctx.replyWithDocument(inputFile);
 
-  // Obtener la URL de descarga directa desde la API de Telegram
   try {
     const fileInfo = await ctx.api.getFile(sentMsg.document.file_id);
     const downloadUrl = `https://api.telegram.org/file/bot${config.telegramToken}/${fileInfo.file_path}`;
+
+    // Borrar el documento (no queremos mostrarlo inline)
+    await ctx.api.deleteMessage(ctx.chat.id, sentMsg.message_id).catch(() => {});
+
+    // Enviar solo el link
     await ctx.reply(
-      `📥 *Descargá el sticker directamente:*\n[Tocá acá para bajar el archivo .webp](${downloadUrl})\n\nDespues importálo con *WASticker* (Android) o *Sticker Studio* (iOS).`,
+      `✅ Sticker listo para WhatsApp:\n\n📥 [Tocá acá para descargar el .webp](${downloadUrl})\n\nDespués importalo con *WASticker* (Android) o *Sticker Studio* (iOS).`,
       { parse_mode: 'Markdown', link_preview_options: { is_disabled: true } }
     );
   } catch {
-    // Si falla obtener el link, el documento igual fue enviado
+    // Si algo falla, al menos el documento ya fue enviado
   }
 }
 
