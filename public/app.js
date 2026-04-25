@@ -78,8 +78,65 @@ document.getElementById('dl-url').addEventListener('input', function () {
 });
 
 /* ── Downloader ──────────────────────────────────────────────────────────── */
+function resetDownloader() {
+  document.getElementById('dl-step2').style.display = 'none';
+  document.getElementById('dl-result').classList.remove('visible');
+  document.getElementById('dl-error').classList.remove('visible');
+}
+
+async function analyzeUrl() {
+  const url = document.getElementById('dl-url').value.trim();
+  if (!url) return;
+
+  const btn = document.getElementById('dl-analyze-btn');
+  const errEl = document.getElementById('dl-error');
+  
+  resetDownloader();
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ph ph-spinner-gap ph-spin"></i> Analizando…';
+
+  try {
+    const res = await fetch('/api/info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error || 'Error al analizar link');
+
+    document.getElementById('dl-thumb').src = data.info.thumbnail || '';
+    document.getElementById('dl-info-title').textContent = data.info.title || 'Video';
+    
+    const select = document.getElementById('dl-format-select');
+    select.innerHTML = '';
+    
+    // Default best
+    select.innerHTML += `<option value="best">🌟 Mejor Calidad (Automático)</option>`;
+    // Audio only
+    select.innerHTML += `<option value="audio">🎵 Solo Audio (MP3)</option>`;
+
+    // Available formats
+    if (data.info.formats && data.info.formats.length > 0) {
+      data.info.formats.forEach(f => {
+        const fps = f.fps ? ` ${f.fps}fps` : '';
+        select.innerHTML += `<option value="${f.format_id}">🎞️ ${f.resolution || 'Video'}${fps} (${f.ext})</option>`;
+      });
+    }
+
+    document.getElementById('dl-step2').style.display = 'block';
+  } catch (err) {
+    errEl.textContent = '❌ ' + err.message;
+    errEl.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph ph-magnifying-glass"></i> <span>Analizar Link</span>';
+  }
+}
+
 async function startDownload() {
   const url = document.getElementById('dl-url').value.trim();
+  const format = document.getElementById('dl-format-select').value;
   if (!url) return;
 
   const btn = document.getElementById('dl-btn');
@@ -89,13 +146,13 @@ async function startDownload() {
   result.classList.remove('visible');
   errEl.classList.remove('visible');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Descargando…';
+  btn.innerHTML = '<i class="ph ph-spinner-gap ph-spin"></i> Descargando…';
 
   try {
     const res = await fetch('/api/download', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, format }),
     });
     const data = await res.json();
 
@@ -111,13 +168,13 @@ async function startDownload() {
     errEl.classList.add('visible');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<span>Descargar</span>';
+    btn.innerHTML = '<i class="ph ph-download-simple"></i> <span>Descargar Selección</span>';
   }
 }
 
 // Enter key on URL input
 document.getElementById('dl-url').addEventListener('keydown', e => {
-  if (e.key === 'Enter') startDownload();
+  if (e.key === 'Enter') analyzeUrl();
 });
 
 /* ── Stickers ────────────────────────────────────────────────────────────── */
@@ -135,9 +192,27 @@ function onFileSelected() {
   const file = document.getElementById('sticker-file').files[0];
   if (!file) return;
 
-  const preview = document.getElementById('sticker-preview');
-  preview.src = URL.createObjectURL(file);
-  preview.classList.add('visible');
+  const imgPreview = document.getElementById('sticker-preview');
+  const vidPreview = document.getElementById('sticker-video-preview');
+  
+  imgPreview.classList.remove('visible');
+  imgPreview.style.display = 'none';
+  vidPreview.classList.remove('visible');
+  vidPreview.style.display = 'none';
+
+  const objUrl = URL.createObjectURL(file);
+
+  if (file.type.startsWith('video/')) {
+    vidPreview.src = objUrl;
+    vidPreview.style.display = 'block';
+    // Pequeño timeout para que se aplique el display block antes de animar
+    setTimeout(() => vidPreview.classList.add('visible'), 10);
+  } else {
+    imgPreview.src = objUrl;
+    imgPreview.style.display = 'block';
+    setTimeout(() => imgPreview.classList.add('visible'), 10);
+  }
+
   document.getElementById('sticker-btn').disabled = false;
   document.getElementById('sticker-result').classList.remove('visible');
   document.getElementById('sticker-error').classList.remove('visible');

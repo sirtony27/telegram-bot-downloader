@@ -5,10 +5,15 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, unlink, readdir, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { runYtDlp } from '../utils/ytdlp.js';
+import { convertToWhatsappAnimatedWebp } from '../utils/ffmpeg.js';
 import { getHistory, extractPlatform, logDownload } from '../handlers/historyHandler.js';
+
+const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '../../public');
@@ -67,92 +72,158 @@ export async function createWebServer(botInfo) {
     res.json({ success: true, items });
   });
 
-  /** Descarga un video por URL */
-  app.post('/api/download', async (req, res) => {
+  /** Analizar un link para extraer calidades */
+  app.post('/api/info', async (req, res) => {
     const { url } = req.body ?? {};
+    if (!url) return res.status(400).json({ success: false, error: 'URL requerida' });
+    try {
+      const infoArgs = ['--dump-json', '--no-playlist'];
+      if (config.cookiesFile) infoArgs.push('--cookies', config.cookiesFile);
+      if (config.ytdlpProxy) infoArgs.push('--proxy', config.ytdlpProxy);
+      infoArgs.push(url);
+      
+      const infoOut = await runYtDlp(infoArgs);
+      const info = JSON.parse(infoOut.trim().split('\n')[0]);
+      
+      const formats = [];
+      if (info.formats) {
+        const added = new Set();
+        // Recorrer de atrás hacia adelante (mejores resoluciones primero)
+        for (const f of info.formats.reverse()) {
+          if (f.height && f.height >= 144 && !added.has(f.height)) {
+            added.add(f.height);
+            formats.push({ 
+              format_id: `bestvideo[height<=${f.height}]+bestaudio/best`, 
+              resolution: `${f.height}p`, 
+              ext: 'mp4', 
+              fps: Math.round(f.fps || 30)
+            });
+          }
+        }
+      }
+      res.json({ success: true, info: { title: info.title, thumbnail: info.thumbnail, formats } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message.split('\n').slice(-3).join(' ') });
+    }
+  });
+
+  /** Descarga un video por URL y Formato */
+  app.post('/api/download', async (req, res) => {
+    const { url, format } = req.body ?? {};
     if (!url) return res.status(400).json({ success: false, error: 'URL requerida' });
 
     const uuid = randomUUID();
     const outputTemplate = path.join(WEB_TEMP_DIR, `${uuid}.%(ext)s`);
 
     try {
+      let formatArg = 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best';
+      
+      if (format === 'audio') {
+        formatArg = 'bestaudio/best';
+      } else if (format && format !== 'best') {
+        formatArg = format;
+      }
+
       const args = [
-        '--no-playlist',
+        '--playlist-end', '15', // Límite de seguridad
         '--max-filesize', `${config.maxFileSizeMb}M`,
-        '-f', 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best',
-        '--merge-output-format', 'mp4',
+        '-f', formatArg,
         '-o', outputTemplate,
       ];
+
+      if (format === 'audio') {
+        args.push('-x', '--audio-format', 'mp3');
+      } else {
+        args.push('--merge-output-format', 'mp4');
+      }
 
       if (config.cookiesFile) args.push('--cookies', config.cookiesFile);
       if (config.ytdlpProxy)  args.push('--proxy', config.ytdlpProxy);
       args.push(url);
 
-      // Obtener metadata del video (título, duración) antes de descargar
-      let title = 'Video';
-      let thumbnailUrl = null;
-      try {
-        const infoArgs = ['--dump-json', '--no-playlist'];
-        if (config.ytdlpProxy) infoArgs.push('--proxy', config.ytdlpProxy);
-        infoArgs.push(url);
-        const infoOut = await runYtDlp(infoArgs);
-        const info = JSON.parse(infoOut.trim().split('\n')[0]);
-        title = info.title ?? 'Video';
-        thumbnailUrl = info.thumbnail ?? null;
-      } catch { /* no bloquear si falla info */ }
-
+      // Descarga real
       await runYtDlp(args);
 
-      // Encontrar el archivo descargado con el UUID como prefijo
+      // Encontrar los archivos descargados con el UUID
       const files = await readdir(WEB_TEMP_DIR);
-      const filename = files.find(f => f.startsWith(uuid));
-      if (!filename) throw new Error('No se encontró el archivo descargado.');
+      const matchFiles = files.filter(f => f.startsWith(uuid));
+      if (matchFiles.length === 0) throw new Error('No se encontró el archivo descargado.');
 
-      const filePath = path.join(WEB_TEMP_DIR, filename);
+      let finalFilename = matchFiles[0];
+      
+      // Si hay múltiples archivos (Playlist), los zipeamos
+      if (matchFiles.length > 1) {
+        finalFilename = `${uuid}.zip`;
+        const zipPath = path.join(WEB_TEMP_DIR, finalFilename);
+        const filePaths = matchFiles.map(f => path.join(WEB_TEMP_DIR, f));
+        
+        await execFileAsync('zip', ['-j', zipPath, ...filePaths]);
+        
+        // Borrar los originales
+        for (const fp of filePaths) unlink(fp).catch(()=>{});
+      }
+
+      const filePath = path.join(WEB_TEMP_DIR, finalFilename);
       scheduleDeletion(filePath);
 
       const platform = extractPlatform(url);
+      
+      // Registrar historial de manera asíncrona
+      logDownload({ url, platform, filename: finalFilename, filesizeMb: null }).catch(() => {});
 
-      // Registrar en Supabase
-      logDownload({ url, platform, filename, filesizeMb: null }).catch(() => {});
-
-      res.json({ success: true, downloadUrl: fileUrl(filename), filename, title, platform, thumbnailUrl });
+      res.json({ success: true, downloadUrl: fileUrl(finalFilename), filename: finalFilename, platform });
     } catch (err) {
       logger.error('[web/download] Error:', err.message);
       res.status(500).json({ success: false, error: err.message.split('\n').slice(-3).join(' ') });
     }
   });
 
-  /** Convierte una imagen a sticker para Telegram o WhatsApp */
+  /** Convierte una imagen o video a sticker para Telegram o WhatsApp */
   app.post('/api/sticker', upload.single('image'), async (req, res) => {
     const type = req.body?.type ?? 'whatsapp'; // 'telegram' | 'whatsapp'
 
-    if (!req.file) return res.status(400).json({ success: false, error: 'Imagen requerida' });
+    if (!req.file) return res.status(400).json({ success: false, error: 'Archivo requerido' });
 
     try {
       const uuid = randomUUID();
-      const maxKb = type === 'telegram' ? Infinity : 100;
+      const isVideo = req.file.mimetype.startsWith('video/');
       const suffix = type === 'telegram' ? '_tg.webp' : '_wa.webp';
-
-      let buffer = await sharp(req.file.buffer)
-        .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-        .webp({ quality: 80 })
-        .toBuffer();
-
-      // Reducir calidad si supera el límite de WhatsApp (100KB)
-      if (buffer.length > maxKb * 1024) {
-        buffer = await sharp(req.file.buffer)
-          .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-          .webp({ quality: 50 })
-          .toBuffer();
-      }
-
       const filename = `${uuid}${suffix}`;
       const filePath = path.join(WEB_TEMP_DIR, filename);
-      await writeFile(filePath, buffer);
-      scheduleDeletion(filePath);
 
-      res.json({ success: true, downloadUrl: fileUrl(filename), sizeKb: Math.round(buffer.length / 1024) });
+      if (isVideo) {
+        // Video: Guardar buffer en disco y procesar con ffmpeg
+        const tempVideo = path.join(WEB_TEMP_DIR, `${uuid}_temp.mp4`);
+        await writeFile(tempVideo, req.file.buffer);
+        
+        try {
+          // Actualmente solo soportamos conversión de video a WebP animado para WhatsApp.
+          // Para telegram habría que hacer convertVideoToStickerWebm. Como UX pide WhatsApp, forzamos esto:
+          await convertToWhatsappAnimatedWebp(tempVideo, filePath);
+        } finally {
+          unlink(tempVideo).catch(()=>{});
+        }
+      } else {
+        // Imagen estática: Procesar con sharp en memoria
+        const maxKb = type === 'telegram' ? Infinity : 100;
+        let buffer = await sharp(req.file.buffer)
+          .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .webp({ quality: 80 })
+          .toBuffer();
+
+        if (buffer.length > maxKb * 1024) {
+          buffer = await sharp(req.file.buffer)
+            .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .webp({ quality: 50 })
+            .toBuffer();
+        }
+        await writeFile(filePath, buffer);
+      }
+
+      scheduleDeletion(filePath);
+      const finalStats = await import('node:fs/promises').then(fs => fs.stat(filePath));
+
+      res.json({ success: true, downloadUrl: fileUrl(filename), sizeKb: Math.round(finalStats.size / 1024) });
     } catch (err) {
       logger.error('[web/sticker] Error:', err.message);
       res.status(500).json({ success: false, error: err.message });

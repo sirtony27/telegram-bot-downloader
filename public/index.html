@@ -87,21 +87,39 @@
     <!-- DOWNLOADER ───────────────────────────────────────────────────────── -->
     <section id="page-downloader" class="tab-page">
       <h1 class="section-title">Descargas</h1>
-      <p class="section-subtitle">Obtené videos sin marca de agua en máxima calidad.</p>
+      <p class="section-subtitle">Obtené videos o audios en la calidad que prefieras.</p>
 
       <div class="input-wrap">
         <i class="ph ph-link"></i>
-        <input type="url" id="dl-url" placeholder="Pegá el enlace del video…" autocomplete="off" autocorrect="off" spellcheck="false">
+        <input type="url" id="dl-url" placeholder="Pegá el enlace…" autocomplete="off" autocorrect="off" spellcheck="false" oninput="resetDownloader()">
       </div>
 
       <div id="dl-badge" class="platform-badge">
         <i class="ph ph-globe"></i> Pegá una URL para detectar
       </div>
 
-      <button class="btn btn-primary" id="dl-btn" onclick="startDownload()">
-        <i class="ph ph-download-simple"></i>
-        <span>Descargar</span>
+      <button class="btn btn-primary" id="dl-analyze-btn" onclick="analyzeUrl()">
+        <i class="ph ph-magnifying-glass"></i>
+        <span>Analizar Link</span>
       </button>
+
+      <!-- Step 2: Formatos y Miniatura -->
+      <div id="dl-step2" class="card" style="display: none; margin-top: 24px; animation: slideUp 0.4s ease;">
+        <img id="dl-thumb" class="preview-img visible" style="margin-bottom: 16px; width: 100%; max-height: 200px; object-fit: cover; aspect-ratio: 16/9; background: #111;">
+        <div class="result-name" id="dl-info-title" style="margin-bottom: 16px; font-weight: 600; color: var(--text);"></div>
+        
+        <div class="input-wrap" style="margin-bottom: 16px;">
+          <i class="ph ph-sliders"></i>
+          <select id="dl-format-select" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); padding: 18px 20px 18px 52px; font-size: 15px; outline: none; appearance: none; font-family: inherit;">
+          </select>
+          <i class="ph ph-caret-down" style="left: auto; right: 20px;"></i>
+        </div>
+
+        <button class="btn btn-success" id="dl-btn" onclick="startDownload()">
+          <i class="ph ph-download-simple"></i>
+          <span>Descargar Selección</span>
+        </button>
+      </div>
 
       <div id="dl-result" class="result-card">
         <div class="result-title"><i class="ph-fill ph-check-circle"></i> Descarga lista</div>
@@ -129,13 +147,14 @@
       </div>
 
       <div class="upload-zone" id="upload-zone">
-        <input type="file" id="sticker-file" accept="image/*" onchange="onFileSelected()">
+        <input type="file" id="sticker-file" accept="image/*,video/mp4,video/webm" onchange="onFileSelected()">
         <i class="ph ph-upload-simple upload-icon"></i>
-        <div class="upload-text">Tocá para elegir una imagen</div>
-        <div class="upload-sub">Formatos soportados: PNG, JPG, WEBP</div>
+        <div class="upload-text">Tocá para elegir archivo</div>
+        <div class="upload-sub">Formatos: PNG, JPG, WEBP, MP4, WEBM (max 10MB)</div>
       </div>
 
       <img id="sticker-preview" class="preview-img" alt="Vista previa">
+      <video id="sticker-video-preview" class="preview-img" autoplay loop muted playsinline style="display:none;"></video>
 
       <button class="btn btn-primary" id="sticker-btn" onclick="convertSticker()" disabled>
         <i class="ph ph-magic-wand"></i>
