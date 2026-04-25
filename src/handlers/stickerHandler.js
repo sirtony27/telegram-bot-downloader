@@ -187,6 +187,29 @@ export async function handleAnimatedSticker(ctx) {
 }
 
 /**
+ * Envía el archivo .webp como documento Y un link de descarga directa.
+ * El link permite bajarlo desde el navegador del celular cuando Telegram lo renderiza inline.
+ * @param {import('grammy').Context} ctx
+ * @param {import('grammy').InputFile} inputFile
+ * @param {string} caption
+ */
+async function sendStickerWithDownloadLink(ctx, inputFile, caption) {
+  const sentMsg = await ctx.replyWithDocument(inputFile, { caption });
+
+  // Obtener la URL de descarga directa desde la API de Telegram
+  try {
+    const fileInfo = await ctx.api.getFile(sentMsg.document.file_id);
+    const downloadUrl = `https://api.telegram.org/file/bot${config.telegramToken}/${fileInfo.file_path}`;
+    await ctx.reply(
+      `📥 *Descargá el sticker directamente:*\n[Tocá acá para bajar el archivo .webp](${downloadUrl})\n\nDespues importálo con *WASticker* (Android) o *Sticker Studio* (iOS).`,
+      { parse_mode: 'Markdown', link_preview_options: { is_disabled: true } }
+    );
+  } catch {
+    // Si falla obtener el link, el documento igual fue enviado
+  }
+}
+
+/**
  * Convierte un sticker de Telegram a formato WebP compatible con WhatsApp.
  *
  * Soporte por tipo:
@@ -237,9 +260,10 @@ export async function handleStickerToWhatsapp(ctx) {
       }
 
       await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
-      await ctx.replyWithDocument(
+      await sendStickerWithDownloadLink(
+        ctx,
         new InputFile(stickerBuffer, 'sticker_wa.webp'),
-        { caption: '✅ Sticker estático listo para WhatsApp. Guardalo e importalo con WASticker o Sticker Studio.' }
+        '✅ Sticker estático convertido para WhatsApp.'
       );
       logger.info('[stickerHandler] Sticker estático para WhatsApp enviado.');
       return;
@@ -260,9 +284,10 @@ export async function handleStickerToWhatsapp(ctx) {
     }
 
     await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
-    await ctx.replyWithDocument(
+    await sendStickerWithDownloadLink(
+      ctx,
       new InputFile(outputPath, 'sticker_wa.webp'),
-      { caption: '✅ Sticker animado listo para WhatsApp. Importalo con WASticker o Sticker Studio.' }
+      '✅ Sticker animado convertido para WhatsApp.'
     );
     logger.info('[stickerHandler] Sticker animado para WhatsApp enviado.');
 
