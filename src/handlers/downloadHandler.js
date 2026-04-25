@@ -93,6 +93,12 @@ export async function handleDownload(ctx, url) {
     ytdlpArgs.push('--cookies', config.cookiesFile);
   }
 
+  // Usar proxy si está configurado (ej: Cloudflare WARP en modo proxy → socks5h://127.0.0.1:40000)
+  // Solo afecta a las descargas de yt-dlp, no a SSH ni a Telegram.
+  if (config.ytdlpProxy) {
+    ytdlpArgs.push('--proxy', config.ytdlpProxy);
+  }
+
   ytdlpArgs.push(url);
 
 

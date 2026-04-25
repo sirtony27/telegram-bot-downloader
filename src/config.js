@@ -72,6 +72,12 @@ export const config = {
    */
   cookiesFile: process.env.COOKIES_FILE || null,
 
+  /**
+   * Proxy opcional para yt-dlp (ej: socks5h://127.0.0.1:40000 con Cloudflare WARP en modo proxy).
+   * No afecta SSH ni la conexión a Telegram — solo las descargas de yt-dlp.
+   */
+  ytdlpProxy: process.env.YTDLP_PROXY || null,
+
   /** Timeout para operaciones de yt-dlp (en milisegundos) */
   ytdlpTimeoutMs: parseInt(process.env.YTDLP_TIMEOUT_MS || '120000', 10),
 
