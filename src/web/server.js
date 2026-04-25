@@ -79,8 +79,7 @@ export async function createWebServer(botInfo) {
     try {
       const infoArgs = [
         '--dump-json', 
-        '--no-playlist', 
-        '--extractor-args', 'youtube:player_client=android'
+        '--no-playlist'
       ];
       if (config.cookiesFile) infoArgs.push('--cookies', config.cookiesFile);
       if (config.ytdlpProxy) infoArgs.push('--proxy', config.ytdlpProxy);
@@ -133,9 +132,7 @@ export async function createWebServer(botInfo) {
         '--max-filesize', `${config.maxFileSizeMb}M`,
         '-f', formatArg,
         '-o', outputTemplate,
-        '--extractor-args', 'youtube:player_client=android', // API movil ultra rapida
-        '--downloader', 'aria2c', // Multi-threading
-        '--downloader-args', 'aria2c:-x 16 -s 16 -k 1M', // 16 conexiones simultáneas
+        '-N', '16', // Multi-threading nativo de yt-dlp (soporta socks5)
       ];
 
       if (format === 'audio') {
