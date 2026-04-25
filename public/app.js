@@ -426,12 +426,52 @@ if ("serviceWorker" in navigator) {
 }
 
 // Editor UI Listeners
-document.getElementById("sticker-start").addEventListener("input", (e) => {
-  document.getElementById("lbl-start").textContent = parseFloat(e.target.value).toFixed(1) + "s";
+const vidPreview = document.getElementById("sticker-video-preview");
+const startSlider = document.getElementById("sticker-start");
+const durationSlider = document.getElementById("sticker-duration");
+
+startSlider.addEventListener("input", (e) => {
+  const start = parseFloat(e.target.value);
+  document.getElementById("lbl-start").textContent = start.toFixed(1) + "s";
+  vidPreview.currentTime = start;
 });
-document.getElementById("sticker-duration").addEventListener("input", (e) => {
+
+durationSlider.addEventListener("input", (e) => {
   document.getElementById("lbl-duration").textContent = parseFloat(e.target.value).toFixed(1) + "s";
 });
+
+// Bucle simulado de video
+vidPreview.addEventListener("timeupdate", () => {
+  const start = parseFloat(startSlider.value) || 0;
+  const duration = parseFloat(durationSlider.value) || 6;
+  const end = start + duration;
+  
+  if (vidPreview.currentTime >= end) {
+    vidPreview.currentTime = start;
+    vidPreview.play().catch(()=>{});
+  } else if (vidPreview.currentTime < start) {
+    vidPreview.currentTime = start;
+  }
+});
+
+window.setStickerSpeed = function(speed) {
+  document.getElementById("sticker-speed").value = speed;
+  document.getElementById("lbl-speed").textContent = speed.toFixed(1) + "x";
+  
+  // Actualizar UI de botones
+  document.querySelectorAll(".speed-btn").forEach(btn => {
+    btn.classList.remove("btn-primary");
+    btn.classList.add("btn-ghost");
+  });
+  const activeBtn = document.querySelector(`.speed-btn[data-speed="${speed}"]`);
+  if (activeBtn) {
+    activeBtn.classList.remove("btn-ghost");
+    activeBtn.classList.add("btn-primary");
+  }
+  
+  // Aplicar velocidad al video en vivo
+  vidPreview.playbackRate = speed;
+};
 
 /* ── Init ────────────────────────────────────────────────────────────────── */
 loadStatus();
