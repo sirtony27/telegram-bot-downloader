@@ -81,6 +81,12 @@ SUPABASE_ANON_KEY=xxxx
 TEMP_DIR=./temp
 MAX_FILE_SIZE_MB=50
 YTDLP_TIMEOUT_MS=120000
+YTDLP_CONCURRENCY=16
+YTDLP_HTTP_CHUNK_SIZE_MB=10
+
+# Opcional (recomendado para acelerar en Oracle)
+# YTDLP_EXTERNAL_DOWNLOADER=aria2c
+# YTDLP_EXTERNAL_DOWNLOADER_ARGS=-x16 -s16 -k1M --file-allocation=none
 
 # Servidor web
 WEB_PORT=3000
@@ -185,7 +191,7 @@ pm2 save
 
 ```bash
 sudo apt update
-sudo apt install -y ffmpeg nginx certbot python3-certbot-nginx
+sudo apt install -y ffmpeg aria2 nginx certbot python3-certbot-nginx
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
@@ -221,6 +227,15 @@ sudo certbot --nginx -d tu-subdominio.duckdns.org
 ```
 
 6. Definí `WEB_BASE_URL=https://tu-subdominio.duckdns.org` en `.env`.
+
+7. Para acelerar descargas en Oracle, usá en `.env`:
+
+```env
+YTDLP_CONCURRENCY=16
+YTDLP_HTTP_CHUNK_SIZE_MB=10
+YTDLP_EXTERNAL_DOWNLOADER=aria2c
+YTDLP_EXTERNAL_DOWNLOADER_ARGS=-x16 -s16 -k1M --file-allocation=none
+```
 
 ---
 

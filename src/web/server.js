@@ -9,7 +9,7 @@ import sharp from "sharp";
 import archiver from "archiver";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
-import { runYtDlp } from "../utils/ytdlp.js";
+import { runYtDlp, withYtDlpPerformanceArgs } from "../utils/ytdlp.js";
 import { convertToWhatsappAnimatedWebp } from "../utils/ffmpeg.js";
 import {
   getHistory,
@@ -192,7 +192,7 @@ export async function createWebServer(getBotUsername = () => undefined) {
 
     try {
       let formatArg =
-        "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best";
+        "best[height<=1080][ext=mp4]/bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best";
 
       if (format === "audio") {
         formatArg = "bestaudio/best";
@@ -209,8 +209,6 @@ export async function createWebServer(getBotUsername = () => undefined) {
         formatArg,
         "-o",
         outputTemplate,
-        "-N",
-        "16", // Multi-threading nativo de yt-dlp (soporta socks5)
       ];
 
       if (format === "audio") {
@@ -224,6 +222,8 @@ export async function createWebServer(getBotUsername = () => undefined) {
       args.push("--no-color"); // Evitar ANSI color codes en el stdout
       args.push(url);
 
+      const finalArgs = withYtDlpPerformanceArgs(args);
+
       // Descarga real con progreso SSE
       const onProgress = (dataStr) => {
         if (clientId && progressClients.has(clientId)) {
@@ -236,7 +236,7 @@ export async function createWebServer(getBotUsername = () => undefined) {
         }
       };
 
-      await runYtDlp(args, config.ytdlpTimeoutMs, onProgress);
+      await runYtDlp(finalArgs, config.ytdlpTimeoutMs, onProgress);
 
       if (clientId && progressClients.has(clientId)) {
         progressClients.get(clientId)({ percent: "100", done: true });

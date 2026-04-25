@@ -74,6 +74,35 @@ export function runYtDlp(
 }
 
 /**
+ * Agrega flags de rendimiento para yt-dlp según la configuración de entorno.
+ * @param {string[]} args
+ * @returns {string[]}
+ */
+export function withYtDlpPerformanceArgs(args) {
+  const nextArgs = [...args];
+
+  if (config.ytdlpConcurrency > 1) {
+    nextArgs.push("-N", String(config.ytdlpConcurrency));
+  }
+
+  if (config.ytdlpHttpChunkSizeMb > 0) {
+    nextArgs.push("--http-chunk-size", `${config.ytdlpHttpChunkSizeMb}M`);
+  }
+
+  if (config.ytdlpExternalDownloader) {
+    nextArgs.push("--downloader", config.ytdlpExternalDownloader);
+    if (config.ytdlpExternalDownloaderArgs.length > 0) {
+      nextArgs.push(
+        "--downloader-args",
+        config.ytdlpExternalDownloaderArgs.join(" "),
+      );
+    }
+  }
+
+  return nextArgs;
+}
+
+/**
  * Obtiene información de un video (JSON) sin descargarlo.
  * @param {string} url - URL del video.
  * @returns {Promise<object>} Objeto con la metadata del video.

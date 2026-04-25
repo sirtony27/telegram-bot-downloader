@@ -47,6 +47,19 @@ function validateEnv() {
 
 validateEnv();
 
+function parseIntEnv(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseSpaceSeparatedArgs(value) {
+  if (!value) return [];
+  return value
+    .split(/\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export const config = {
   /** Token del bot de Telegram (provisto por @BotFather) */
   telegramToken: process.env.TELEGRAM_BOT_TOKEN,
@@ -64,7 +77,7 @@ export const config = {
   tempDir: process.env.TEMP_DIR || "./temp",
 
   /** Tamaño máximo de archivo que yt-dlp puede descargar (en MB) */
-  maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB || "50", 10),
+  maxFileSizeMb: parseIntEnv(process.env.MAX_FILE_SIZE_MB || "50", 50),
 
   /**
    * Ruta opcional a un archivo Netscape cookies.txt para autenticar yt-dlp.
@@ -79,7 +92,24 @@ export const config = {
   ytdlpProxy: process.env.YTDLP_PROXY || null,
 
   /** Timeout para operaciones de yt-dlp (en milisegundos) */
-  ytdlpTimeoutMs: parseInt(process.env.YTDLP_TIMEOUT_MS || "120000", 10),
+  ytdlpTimeoutMs: parseIntEnv(process.env.YTDLP_TIMEOUT_MS || "120000", 120000),
+
+  /** Cantidad de fragmentos concurrentes de yt-dlp (equivale a -N). */
+  ytdlpConcurrency: parseIntEnv(process.env.YTDLP_CONCURRENCY || "16", 16),
+
+  /** Tamaño de chunk HTTP (MB) para reducir throttling en ciertos proveedores. 0 desactiva. */
+  ytdlpHttpChunkSizeMb: parseIntEnv(
+    process.env.YTDLP_HTTP_CHUNK_SIZE_MB || "10",
+    10,
+  ),
+
+  /** Downloader externo opcional (ej: aria2c) para acelerar descargas. */
+  ytdlpExternalDownloader: process.env.YTDLP_EXTERNAL_DOWNLOADER || null,
+
+  /** Args para downloader externo, separados por espacios. */
+  ytdlpExternalDownloaderArgs: parseSpaceSeparatedArgs(
+    process.env.YTDLP_EXTERNAL_DOWNLOADER_ARGS,
+  ),
 
   /**
    * Límite de tamaño de archivos enviables por bots de Telegram (en bytes).
@@ -88,7 +118,7 @@ export const config = {
   telegramMaxBytes: 50 * 1024 * 1024,
 
   /** Puerto del servidor web (PWA + API). */
-  webPort: parseInt(process.env.WEB_PORT || "3000", 10),
+  webPort: parseIntEnv(process.env.WEB_PORT || "3000", 3000),
 
   /**
    * URL base pública del servidor web. Se usa para generar links de descarga.

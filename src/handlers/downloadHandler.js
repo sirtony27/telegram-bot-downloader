@@ -3,7 +3,7 @@ import path from "node:path";
 import { InputFile } from "grammy";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
-import { runYtDlp } from "../utils/ytdlp.js";
+import { runYtDlp, withYtDlpPerformanceArgs } from "../utils/ytdlp.js";
 import { logDownload, extractPlatform } from "./historyHandler.js";
 
 /**
@@ -59,7 +59,7 @@ export async function handleDownload(ctx, url) {
     outputTemplate,
     // Selector de formato con fallback progresivo
     "-f",
-    "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
+    "best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
     "--no-warnings",
     "--print",
     "filename",
@@ -92,6 +92,7 @@ export async function handleDownload(ctx, url) {
   }
 
   ytdlpArgs.push(url);
+  const finalYtdlpArgs = withYtDlpPerformanceArgs(ytdlpArgs);
 
   let filePath = null;
   let statusMsgId = null;
@@ -103,7 +104,7 @@ export async function handleDownload(ctx, url) {
 
     logger.info(`[downloadHandler] Iniciando descarga: ${url}`);
 
-    const stdout = await runYtDlp(ytdlpArgs);
+    const stdout = await runYtDlp(finalYtdlpArgs);
     const printedPath = stdout.trim().split("\n").pop()?.trim();
     filePath = printedPath || null;
 
