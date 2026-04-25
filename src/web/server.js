@@ -77,7 +77,11 @@ export async function createWebServer(botInfo) {
     const { url } = req.body ?? {};
     if (!url) return res.status(400).json({ success: false, error: 'URL requerida' });
     try {
-      const infoArgs = ['--dump-json', '--no-playlist'];
+      const infoArgs = [
+        '--dump-json', 
+        '--no-playlist', 
+        '--extractor-args', 'youtube:player_client=android'
+      ];
       if (config.cookiesFile) infoArgs.push('--cookies', config.cookiesFile);
       if (config.ytdlpProxy) infoArgs.push('--proxy', config.ytdlpProxy);
       infoArgs.push(url);
@@ -129,6 +133,9 @@ export async function createWebServer(botInfo) {
         '--max-filesize', `${config.maxFileSizeMb}M`,
         '-f', formatArg,
         '-o', outputTemplate,
+        '--extractor-args', 'youtube:player_client=android', // API movil ultra rapida
+        '--downloader', 'aria2c', // Multi-threading
+        '--downloader-args', 'aria2c:-x 16 -s 16 -k 1M', // 16 conexiones simultáneas
       ];
 
       if (format === 'audio') {
