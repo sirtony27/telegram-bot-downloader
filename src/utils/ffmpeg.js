@@ -115,8 +115,8 @@ export async function convertToWhatsappAnimatedWebp(inputPath, outputPath, quali
     '-i', inputPath,
     '-t', '6',                             // Máximo 6 segundos (límite WhatsApp)
     '-vf',
-    // Escalar 512×512 con padding transparente, 15fps para reducir tamaño
-    'scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,fps=15',
+    // Escalar para que el lado más largo sea 512 (sin padding), 15fps para reducir tamaño
+    'scale=512:512:force_original_aspect_ratio=decrease,fps=15',
     '-c:v', 'libwebp',                     // Encoder WebP animado
     '-loop', '0',                          // Loop infinito
     '-quality', String(quality),           // Calidad ajustable
