@@ -4,7 +4,6 @@ import { InputFile } from "grammy";
 import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
 import { runYtDlp, withYtDlpPerformanceArgs } from "../utils/ytdlp.js";
-import { logDownload, extractPlatform } from "./historyHandler.js";
 
 /**
  * Handler de descarga de videos usando yt-dlp para Telegram.
@@ -135,8 +134,7 @@ export async function handleDownload(ctx, url) {
     );
 
     const filename = path.basename(filePath);
-    const platform = extractPlatform(url);
-    const caption = `📥 ${platform}`;
+    const caption = `📥 Descarga completada`;
 
     // Enviar el archivo con InputFile local (soporta hasta 50 MB sin re-upload)
     if (isVideo) {
@@ -152,7 +150,6 @@ export async function handleDownload(ctx, url) {
     }
 
     logger.info(`[downloadHandler] Archivo enviado: ${filename}`);
-    await logDownload({ url, platform, filename, filesizeMb: fileSizeMb });
   } catch (err) {
     logger.error("[downloadHandler] Error durante la descarga:", err);
 

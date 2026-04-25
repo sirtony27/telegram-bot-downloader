@@ -8,8 +8,6 @@ import "dotenv/config";
 const REQUIRED_VARS = [
   "TELEGRAM_BOT_TOKEN",
   "OWNER_CHAT_ID",
-  "SUPABASE_URL",
-  "SUPABASE_ANON_KEY",
 ];
 
 /**
@@ -67,11 +65,7 @@ export const config = {
   /** Telegram User ID del dueño — único usuario autorizado */
   ownerChatId: parseInt(process.env.OWNER_CHAT_ID, 10),
 
-  /** URL del proyecto en Supabase */
-  supabaseUrl: process.env.SUPABASE_URL,
 
-  /** Clave anon/public de Supabase */
-  supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
 
   /** Directorio donde se guardan los archivos temporales de descarga */
   tempDir: process.env.TEMP_DIR || "./temp",

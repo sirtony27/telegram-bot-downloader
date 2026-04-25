@@ -6,7 +6,6 @@ import {
   handleDocumentSticker,
   handleStickerToWhatsapp,
 } from "./stickerHandler.js";
-import { formatHistoryMessage } from "./historyHandler.js";
 
 /**
  * Router principal de mensajes entrantes para el bot de Telegram.
@@ -28,8 +27,6 @@ Enviame una foto (como imagen o documento) para convertirla en sticker de Telegr
 👋 Convertir sticker para WhatsApp
 Reenviame cualquier sticker de Telegram y te devuelvo el archivo .webp listo para importar en WhatsApp.
 
-📋 Ver historial
-Escribí /historial para ver tus últimas 10 descargas.
 
 ℹ️ Ayuda
 Escribí /help o /start para ver este mensaje.`;
@@ -65,11 +62,6 @@ export function registerHandlers(bot) {
   /** /start y /help → menú de ayuda */
   bot.command(["start", "help"], (ctx) => ctx.reply(HELP_MENU));
 
-  /** /historial → últimas 10 descargas */
-  bot.command("historial", async (ctx) => {
-    const historyText = await formatHistoryMessage(10);
-    await ctx.reply(historyText);
-  });
 
   // --- Mensajes ---
   /**

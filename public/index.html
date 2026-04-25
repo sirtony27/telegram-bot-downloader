@@ -54,11 +54,7 @@
           <span class="qb-label">Stickers</span>
           <span class="qb-sub">Para WhatsApp</span>
         </button>
-        <button class="quick-btn" onclick="navigate('history')">
-          <i class="ph ph-clock-counter-clockwise"></i>
-          <span class="qb-label">Historial</span>
-          <span class="qb-sub">Descargas recientes</span>
-        </button>
+
         <button class="quick-btn" onclick="installPwa()">
           <i class="ph ph-export"></i>
           <span class="qb-label">Instalar App</span>
@@ -185,18 +181,6 @@
       <div id="sticker-error" class="error-card"></div>
     </section>
 
-    <!-- HISTORY ──────────────────────────────────────────────────────────── -->
-    <section id="page-history" class="tab-page">
-      <h1 class="section-title">Actividad</h1>
-      <p class="section-subtitle">Últimas conversiones y descargas en el servidor.</p>
-      
-      <div id="history-list">
-        <div class="empty-state">
-          <i class="ph ph-spinner-gap ph-spin"></i>
-          <div>Sincronizando…</div>
-        </div>
-      </div>
-    </section>
 
   </main>
 
@@ -214,10 +198,7 @@
       <i class="ph-fill ph-image-square"></i>
       <span class="tab-label">Stickers</span>
     </button>
-    <button class="tab-btn" id="tab-history" onclick="navigate('history')">
-      <i class="ph-fill ph-clock-counter-clockwise"></i>
-      <span class="tab-label">Historial</span>
-    </button>
+
   </nav>
 
 </div>

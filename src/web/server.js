@@ -11,11 +11,6 @@ import { config } from "../config.js";
 import { logger } from "../utils/logger.js";
 import { runYtDlp, withYtDlpPerformanceArgs } from "../utils/ytdlp.js";
 import { convertToWhatsappAnimatedWebp } from "../utils/ffmpeg.js";
-import {
-  getHistory,
-  extractPlatform,
-  logDownload,
-} from "../handlers/historyHandler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, "../../public");
@@ -133,11 +128,6 @@ export async function createWebServer(getBotUsername = () => undefined) {
     });
   });
 
-  /** Historial de descargas */
-  app.get("/api/history", async (_req, res) => {
-    const items = await getHistory(30);
-    res.json({ success: true, items });
-  });
 
   /** Analizar un link para extraer calidades */
   app.post("/api/info", async (req, res) => {

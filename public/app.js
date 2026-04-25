@@ -16,11 +16,7 @@ function navigate(tab) {
   document.getElementById(`page-${tab}`).classList.add("active");
   document.getElementById(`tab-${tab}`).classList.add("active");
   document
-    .getElementById(`tab-${currentTab}`)
-    .querySelector("i")
     .classList.replace("ph", "ph-fill");
-
-  if (tab === "history") loadHistory();
 }
 
 /* ── Status ──────────────────────────────────────────────────────────────── */
@@ -38,17 +34,6 @@ async function loadStatus() {
     );
   } catch {
     document.getElementById("info-bot").textContent = "Sin conexión";
-  }
-}
-
-async function loadHomeStats() {
-  try {
-    const res = await fetch("/api/history");
-    const data = await res.json();
-    document.getElementById("stat-downloads").textContent =
-      data.items?.length ?? 0;
-  } catch {
-    /* ignore */
   }
 }
 
@@ -364,59 +349,6 @@ async function shareSticker() {
   }
 }
 
-/* ── History ─────────────────────────────────────────────────────────────── */
-async function loadHistory() {
-  const list = document.getElementById("history-list");
-  list.innerHTML =
-    '<div class="empty-state"><i class="ph ph-spinner-gap ph-spin"></i><div>Cargando…</div></div>';
-
-  try {
-    const res = await fetch("/api/history");
-    const data = await res.json();
-    const items = data.items ?? [];
-
-    if (items.length === 0) {
-      list.innerHTML =
-        '<div class="empty-state"><i class="ph ph-tray"></i><div>No hay descargas recientes.</div></div>';
-      return;
-    }
-
-    list.innerHTML = items
-      .map((item) => {
-        const p =
-          PLATFORMS[item.platform.toLowerCase()] ||
-          Object.values(PLATFORMS).find(
-            (x) => x.label.toLowerCase() === item.platform.toLowerCase(),
-          );
-        const icon = p ? p.icon : "ph-globe";
-        const date = new Date(item.created_at).toLocaleString("es-AR", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        const size =
-          item.filesize_mb != null ? `${item.filesize_mb} MB · ` : "";
-        return `
-        <div class="history-item">
-          <div class="history-icon"><i class="ph ${icon}"></i></div>
-          <div class="history-info">
-            <div class="history-title">${escHtml(item.filename)}</div>
-            <div class="history-meta">${size}${item.platform} · ${date}</div>
-          </div>
-        </div>`;
-      })
-      .join("");
-  } catch {
-    list.innerHTML =
-      '<div class="empty-state"><i class="ph ph-warning"></i><div>No se pudo cargar la actividad.</div></div>';
-  }
-}
-
-function escHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
 
 /* ── Storage Management ──────────────────────────────────────────────────── */
 async function clearTempStorage() {
@@ -476,6 +408,5 @@ if ("serviceWorker" in navigator) {
 
 /* ── Init ────────────────────────────────────────────────────────────────── */
 loadStatus();
-loadHomeStats();
 // Refresh status every 30s
 setInterval(loadStatus, 30_000);
