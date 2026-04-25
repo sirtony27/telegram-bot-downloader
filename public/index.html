@@ -3,23 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#7c3aed">
+  <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Descargá videos de YouTube, TikTok, Instagram y más. Convertí stickers para WhatsApp.">
+  <meta name="description" content="Descargá videos y convertí stickers para WhatsApp">
   <title>MediaHub</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon.svg">
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div id="app">
 
-  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <!-- ── Top Bar ─────────────────────────────────────────────────────────── -->
   <header class="header">
     <div class="header-logo">
-      <img src="/icon.svg" alt="MediaHub">
+      <i class="ph-fill ph-lightning"></i>
       <span>MediaHub</span>
     </div>
     <div id="status-dot" class="status-dot" title="Estado del bot"></div>
@@ -30,81 +32,77 @@
 
     <!-- HOME ─────────────────────────────────────────────────────────────── -->
     <section id="page-home" class="tab-page active">
-      <p class="section-title">Panel de control</p>
-
       <div class="stat-grid">
         <div class="stat-card">
           <span class="stat-value" id="stat-downloads">—</span>
-          <span class="stat-label">Total descargas</span>
+          <span class="stat-label">Descargas totales</span>
         </div>
         <div class="stat-card">
           <span class="stat-value" id="stat-uptime">—</span>
-          <span class="stat-label">Uptime (min)</span>
+          <span class="stat-label">Minutos online</span>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">Estado del servidor</div>
-        <div class="info-row">
-          <span class="ir-label">Bot Telegram</span>
-          <span class="ir-value" id="info-bot">Cargando…</span>
-        </div>
-        <div class="info-row">
-          <span class="ir-label">Web server</span>
-          <span class="ir-value" style="color:var(--success)">Online ✓</span>
-        </div>
-        <div class="info-row">
-          <span class="ir-label">Versión</span>
-          <span class="ir-value">1.0.0</span>
-        </div>
-      </div>
-
-      <div class="card-title" style="margin-bottom:12px">Acciones rápidas</div>
       <div class="quick-actions">
         <button class="quick-btn" onclick="navigate('downloader')">
-          <span class="qb-icon">📥</span>
-          <span class="qb-label">Descargar</span>
+          <i class="ph ph-download-simple"></i>
+          <span class="qb-label">Downloader</span>
           <span class="qb-sub">YouTube, TikTok…</span>
         </button>
         <button class="quick-btn" onclick="navigate('stickers')">
-          <span class="qb-icon">🎨</span>
+          <i class="ph ph-image-square"></i>
           <span class="qb-label">Stickers</span>
           <span class="qb-sub">Para WhatsApp</span>
         </button>
         <button class="quick-btn" onclick="navigate('history')">
-          <span class="qb-icon">📋</span>
+          <i class="ph ph-clock-counter-clockwise"></i>
           <span class="qb-label">Historial</span>
-          <span class="qb-sub">Últimas descargas</span>
+          <span class="qb-sub">Descargas recientes</span>
         </button>
         <button class="quick-btn" onclick="installPwa()">
-          <span class="qb-icon">📲</span>
-          <span class="qb-label">Instalar</span>
-          <span class="qb-sub">Agregar a pantalla</span>
+          <i class="ph ph-export"></i>
+          <span class="qb-label">Instalar App</span>
+          <span class="qb-sub">Añadir a pantalla</span>
         </button>
+      </div>
+
+      <div class="card" style="margin-top: 32px">
+        <div class="card-title">Sistema</div>
+        <div class="info-row">
+          <span class="ir-label">Bot de Telegram</span>
+          <span class="ir-value" id="info-bot">Cargando…</span>
+        </div>
+        <div class="info-row">
+          <span class="ir-label">Servidor Local</span>
+          <span class="ir-value" style="color:var(--success)">En línea</span>
+        </div>
       </div>
     </section>
 
     <!-- DOWNLOADER ───────────────────────────────────────────────────────── -->
     <section id="page-downloader" class="tab-page">
-      <p class="section-title">Descargar video</p>
-      <p class="section-subtitle">YouTube, TikTok, Instagram, Twitter y más</p>
+      <h1 class="section-title">Descargas</h1>
+      <p class="section-subtitle">Obtené videos sin marca de agua en máxima calidad.</p>
 
       <div class="input-wrap">
-        <span class="input-icon">🔗</span>
-        <input type="url" id="dl-url" placeholder="Pegá el link del video…" autocomplete="off" autocorrect="off" spellcheck="false">
+        <i class="ph ph-link"></i>
+        <input type="url" id="dl-url" placeholder="Pegá el enlace del video…" autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
 
-      <div id="dl-badge" class="platform-badge">🌐 Pegá una URL para detectar la plataforma</div>
+      <div id="dl-badge" class="platform-badge">
+        <i class="ph ph-globe"></i> Pegá una URL para detectar
+      </div>
 
       <button class="btn btn-primary" id="dl-btn" onclick="startDownload()">
+        <i class="ph ph-download-simple"></i>
         <span>Descargar</span>
       </button>
 
       <div id="dl-result" class="result-card">
-        <div class="result-title">✅ ¡Listo!</div>
+        <div class="result-title"><i class="ph-fill ph-check-circle"></i> Descarga lista</div>
         <div class="result-name" id="dl-title"></div>
-        <a id="dl-link" class="btn btn-success" style="text-decoration:none; margin-top:0" download>
-          ⬇️ Descargar archivo
+        <a id="dl-link" class="btn btn-success" style="text-decoration:none" download>
+          <i class="ph ph-folder-arrow-down"></i> Guardar archivo
         </a>
       </div>
       <div id="dl-error" class="error-card"></div>
@@ -112,39 +110,42 @@
 
     <!-- STICKERS ─────────────────────────────────────────────────────────── -->
     <section id="page-stickers" class="tab-page">
-      <p class="section-title">Convertir sticker</p>
-      <p class="section-subtitle">Subí una imagen y elegí el formato de salida</p>
+      <h1 class="section-title">Stickers</h1>
+      <p class="section-subtitle">Convertí imágenes para usarlas directamente en tus chats.</p>
 
-      <div class="toggle-group">
+      <div class="toggle-group" data-state="whatsapp" id="sticker-toggles">
+        <div class="toggle-bg"></div>
         <button class="toggle-btn active" id="toggle-wa" onclick="setStickerType('whatsapp')">
-          💬 Para WhatsApp
+          <i class="ph ph-whatsapp-logo"></i> WhatsApp
         </button>
         <button class="toggle-btn" id="toggle-tg" onclick="setStickerType('telegram')">
-          ✈️ Para Telegram
+          <i class="ph ph-telegram-logo"></i> Telegram
         </button>
       </div>
 
       <div class="upload-zone" id="upload-zone">
         <input type="file" id="sticker-file" accept="image/*" onchange="onFileSelected()">
-        <span class="upload-icon">🖼️</span>
+        <i class="ph ph-upload-simple upload-icon"></i>
         <div class="upload-text">Tocá para elegir una imagen</div>
-        <div class="upload-sub">PNG, JPG, WEBP, GIF — máx 10 MB</div>
+        <div class="upload-sub">Formatos soportados: PNG, JPG, WEBP</div>
       </div>
 
-      <img id="sticker-preview" class="preview-img" alt="Preview">
+      <img id="sticker-preview" class="preview-img" alt="Vista previa">
 
       <button class="btn btn-primary" id="sticker-btn" onclick="convertSticker()" disabled>
-        <span>Convertir</span>
+        <i class="ph ph-magic-wand"></i>
+        <span>Procesar Sticker</span>
       </button>
 
       <div id="sticker-result" class="result-card">
-        <div class="result-title">✅ Sticker listo</div>
+        <div class="result-title"><i class="ph-fill ph-check-circle"></i> Conversión exitosa</div>
         <div class="result-name" id="sticker-size"></div>
-        <button class="btn btn-accent" id="sticker-share" onclick="shareSticker()">
-          🔗 Compartir a WASticker
+        
+        <button class="btn btn-accent" id="sticker-share" onclick="shareSticker()" style="margin-bottom: 8px">
+          <i class="ph ph-share-network"></i> Compartir a WASticker
         </button>
-        <a id="sticker-link" class="btn btn-ghost" style="text-decoration:none; margin-top:0" download="sticker.webp">
-          ⬇️ Descargar .webp
+        <a id="sticker-link" class="btn btn-ghost" style="text-decoration:none" download="sticker.webp">
+          <i class="ph ph-download-simple"></i> Descargar WEBP
         </a>
       </div>
       <div id="sticker-error" class="error-card"></div>
@@ -152,34 +153,35 @@
 
     <!-- HISTORY ──────────────────────────────────────────────────────────── -->
     <section id="page-history" class="tab-page">
-      <p class="section-title">Historial</p>
-      <p class="section-subtitle">Últimas 30 descargas registradas</p>
+      <h1 class="section-title">Actividad</h1>
+      <p class="section-subtitle">Últimas conversiones y descargas en el servidor.</p>
+      
       <div id="history-list">
         <div class="empty-state">
-          <span class="empty-icon">⏳</span>
-          <span class="empty-text">Cargando historial…</span>
+          <i class="ph ph-spinner-gap ph-spin"></i>
+          <div>Sincronizando…</div>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- ── Bottom Tab Bar ──────────────────────────────────────────────────── -->
+  <!-- ── Floating Bottom Tab Bar ─────────────────────────────────────────── -->
   <nav class="tab-bar">
     <button class="tab-btn active" id="tab-home" onclick="navigate('home')">
-      <span class="tab-icon">🏠</span>
+      <i class="ph-fill ph-house"></i>
       <span class="tab-label">Inicio</span>
     </button>
     <button class="tab-btn" id="tab-downloader" onclick="navigate('downloader')">
-      <span class="tab-icon">📥</span>
+      <i class="ph-fill ph-download-simple"></i>
       <span class="tab-label">Descargar</span>
     </button>
     <button class="tab-btn" id="tab-stickers" onclick="navigate('stickers')">
-      <span class="tab-icon">🎨</span>
+      <i class="ph-fill ph-image-square"></i>
       <span class="tab-label">Stickers</span>
     </button>
     <button class="tab-btn" id="tab-history" onclick="navigate('history')">
-      <span class="tab-icon">📋</span>
+      <i class="ph-fill ph-clock-counter-clockwise"></i>
       <span class="tab-label">Historial</span>
     </button>
   </nav>

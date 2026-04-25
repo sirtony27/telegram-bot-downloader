@@ -8,10 +8,11 @@ let deferredInstallPrompt = null;
 function navigate(tab) {
   document.getElementById(`page-${currentTab}`).classList.remove('active');
   document.getElementById(`tab-${currentTab}`).classList.remove('active');
+  document.getElementById(`tab-${currentTab}`).querySelector('i').classList.replace('ph-fill', 'ph');
   currentTab = tab;
   document.getElementById(`page-${tab}`).classList.add('active');
   document.getElementById(`tab-${tab}`).classList.add('active');
-  if (tab === 'history') loadHistory();
+  document.getElementById(`tab-${currentTab}`).querySelector('i').classList.replace('ph', 'ph-fill');
 }
 
 /* ── Status ──────────────────────────────────────────────────────────────── */
@@ -40,16 +41,16 @@ async function loadHomeStats() {
 
 /* ── Platform detection ──────────────────────────────────────────────────── */
 const PLATFORMS = {
-  youtube:   { label: '▶️ YouTube',    emoji: '▶️' },
-  youtu:     { label: '▶️ YouTube',    emoji: '▶️' },
-  tiktok:    { label: '🎵 TikTok',     emoji: '🎵' },
-  instagram: { label: '📸 Instagram',  emoji: '📸' },
-  twitter:   { label: '🐦 Twitter/X',  emoji: '🐦' },
-  'x.com':   { label: '🐦 Twitter/X',  emoji: '🐦' },
-  facebook:  { label: '📘 Facebook',   emoji: '📘' },
-  reddit:    { label: '🤖 Reddit',     emoji: '🤖' },
-  twitch:    { label: '🟣 Twitch',     emoji: '🟣' },
-  vimeo:     { label: '🎬 Vimeo',      emoji: '🎬' },
+  youtube:   { label: 'YouTube',    icon: 'ph-youtube-logo' },
+  youtu:     { label: 'YouTube',    icon: 'ph-youtube-logo' },
+  tiktok:    { label: 'TikTok',     icon: 'ph-tiktok-logo' },
+  instagram: { label: 'Instagram',  icon: 'ph-instagram-logo' },
+  twitter:   { label: 'Twitter/X',  icon: 'ph-x-logo' },
+  'x.com':   { label: 'Twitter/X',  icon: 'ph-x-logo' },
+  facebook:  { label: 'Facebook',   icon: 'ph-facebook-logo' },
+  reddit:    { label: 'Reddit',     icon: 'ph-reddit-logo' },
+  twitch:    { label: 'Twitch',     icon: 'ph-twitch-logo' },
+  vimeo:     { label: 'Vimeo',      icon: 'ph-video' },
 };
 
 function detectPlatform(url) {
@@ -66,10 +67,10 @@ document.getElementById('dl-url').addEventListener('input', function () {
   const badge = document.getElementById('dl-badge');
   const p = detectPlatform(this.value.trim());
   if (p) {
-    badge.textContent = p.label;
+    badge.innerHTML = `<i class="ph ${p.icon}"></i> ${p.label}`;
     badge.className = 'platform-badge detected';
   } else {
-    badge.textContent = '🌐 Pegá una URL para detectar la plataforma';
+    badge.innerHTML = '<i class="ph ph-globe"></i> Pegá una URL para detectar';
     badge.className = 'platform-badge';
   }
 });
@@ -120,6 +121,7 @@ document.getElementById('dl-url').addEventListener('keydown', e => {
 /* ── Stickers ────────────────────────────────────────────────────────────── */
 function setStickerType(type) {
   stickerType = type;
+  document.getElementById('sticker-toggles').dataset.state = type;
   document.getElementById('toggle-wa').classList.toggle('active', type === 'whatsapp');
   document.getElementById('toggle-tg').classList.toggle('active', type === 'telegram');
   // Reset result
@@ -220,14 +222,9 @@ async function shareSticker() {
 }
 
 /* ── History ─────────────────────────────────────────────────────────────── */
-const PLATFORM_ICONS = {
-  YouTube: '▶️', TikTok: '🎵', Instagram: '📸', Twitter: '🐦',
-  Facebook: '📘', Reddit: '🤖', Twitch: '🟣', Vimeo: '🎬',
-};
-
 async function loadHistory() {
   const list = document.getElementById('history-list');
-  list.innerHTML = '<div class="empty-state"><span class="empty-icon">⏳</span><span class="empty-text">Cargando…</span></div>';
+  list.innerHTML = '<div class="empty-state"><i class="ph ph-spinner-gap ph-spin"></i><div>Cargando…</div></div>';
 
   try {
     const res = await fetch('/api/history');
@@ -235,12 +232,13 @@ async function loadHistory() {
     const items = data.items ?? [];
 
     if (items.length === 0) {
-      list.innerHTML = '<div class="empty-state"><span class="empty-icon">📭</span><span class="empty-text">No hay descargas registradas aún.</span></div>';
+      list.innerHTML = '<div class="empty-state"><i class="ph ph-tray"></i><div>No hay descargas recientes.</div></div>';
       return;
     }
 
     list.innerHTML = items.map(item => {
-      const icon = PLATFORM_ICONS[item.platform] ?? '🌐';
+      const p = PLATFORMS[item.platform.toLowerCase()] || Object.values(PLATFORMS).find(x => x.label.toLowerCase() === item.platform.toLowerCase());
+      const icon = p ? p.icon : 'ph-globe';
       const date = new Date(item.created_at).toLocaleString('es-AR', {
         day: '2-digit', month: '2-digit', year: '2-digit',
         hour: '2-digit', minute: '2-digit',
@@ -248,7 +246,7 @@ async function loadHistory() {
       const size = item.filesize_mb != null ? `${item.filesize_mb} MB · ` : '';
       return `
         <div class="history-item">
-          <div class="history-icon">${icon}</div>
+          <div class="history-icon"><i class="ph ${icon}"></i></div>
           <div class="history-info">
             <div class="history-title">${escHtml(item.filename)}</div>
             <div class="history-meta">${size}${item.platform} · ${date}</div>
@@ -256,7 +254,7 @@ async function loadHistory() {
         </div>`;
     }).join('');
   } catch {
-    list.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><span class="empty-text">No se pudo cargar el historial.</span></div>';
+    list.innerHTML = '<div class="empty-state"><i class="ph ph-warning"></i><div>No se pudo cargar la actividad.</div></div>';
   }
 }
 
