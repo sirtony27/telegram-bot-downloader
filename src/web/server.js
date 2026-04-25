@@ -264,15 +264,7 @@ export async function createWebServer(getBotUsername = () => undefined) {
       const filePath = path.join(WEB_TEMP_DIR, finalFilename);
       scheduleDeletion(filePath);
 
-      const platform = extractPlatform(url);
 
-      // Registrar historial de manera asíncrona
-      logDownload({
-        url,
-        platform,
-        filename: finalFilename,
-        filesizeMb: null,
-      }).catch(() => {});
 
       res.json({
         success: true,
