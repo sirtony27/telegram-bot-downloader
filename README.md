@@ -4,20 +4,21 @@ Bot personal de Telegram con descarga de videos, creación de stickers e histori
 
 ## Funcionalidades
 
-| Acción | Descripción |
-|--------|-------------|
-| Enviar un enlace | Descarga el video y lo envía (TikTok, Instagram, YouTube, Twitter/X, etc.) |
-| Enviar una foto | La convierte en sticker estático WebP |
-| Enviar imagen como documento | La convierte en sticker estático WebP |
-| Reenviar sticker animado | Lo convierte a WebM VP9 compatible con Telegram |
-| `/historial` | Muestra las últimas 10 descargas registradas |
-| `/help` o `/start` | Muestra el menú de ayuda |
+| Acción                       | Descripción                                                                |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| Enviar un enlace             | Descarga el video y lo envía (TikTok, Instagram, YouTube, Twitter/X, etc.) |
+| Enviar una foto              | La convierte en sticker estático WebP                                      |
+| Enviar imagen como documento | La convierte en sticker estático WebP                                      |
+| Reenviar sticker animado     | Lo convierte a WebM VP9 compatible con Telegram                            |
+| `/historial`                 | Muestra las últimas 10 descargas registradas                               |
+| `/help` o `/start`           | Muestra el menú de ayuda                                                   |
 
 ---
 
 ## Prerrequisitos
 
 ### Node.js 20 (via nvm)
+
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 source ~/.bashrc
@@ -27,6 +28,7 @@ node --version  # debe mostrar v20.x.x
 ```
 
 ### yt-dlp
+
 ```bash
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
@@ -34,6 +36,7 @@ yt-dlp --version
 ```
 
 ### ffmpeg
+
 ```bash
 sudo apt update
 sudo apt install -y ffmpeg
@@ -41,6 +44,7 @@ ffmpeg -version
 ```
 
 ### PM2 (para producción)
+
 ```bash
 npm install -g pm2
 ```
@@ -77,14 +81,21 @@ SUPABASE_ANON_KEY=xxxx
 TEMP_DIR=./temp
 MAX_FILE_SIZE_MB=50
 YTDLP_TIMEOUT_MS=120000
+
+# Servidor web
+WEB_PORT=3000
+# Recomendado en producción con DuckDNS + HTTPS
+WEB_BASE_URL=https://tu-subdominio.duckdns.org
 ```
 
 #### Cómo obtener el token del bot
+
 1. Abrí Telegram y buscá **@BotFather**
 2. Enviá `/newbot` y seguí las instrucciones
 3. Al finalizar, BotFather te da el token. Copialo en `TELEGRAM_BOT_TOKEN`
 
 #### Cómo obtener tu User ID
+
 1. Buscá **@userinfobot** en Telegram
 2. Enviá cualquier mensaje → te responde con tu User ID numérico
 3. Copialo en `OWNER_CHAT_ID`
@@ -124,40 +135,92 @@ El bot se conecta directamente a Telegram via long polling. No necesitás escane
 ## Uso en producción con PM2
 
 ### Iniciar
+
 ```bash
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 ```
 
 ### Ver estado
+
 ```bash
 pm2 status
 ```
 
 ### Ver logs en tiempo real
+
 ```bash
 pm2 logs telegram-bot
 ```
 
 ### Ver logs con historial
+
 ```bash
 pm2 logs telegram-bot --lines 100
 ```
 
 ### Reiniciar
+
 ```bash
 pm2 restart telegram-bot
 ```
 
 ### Detener
+
 ```bash
 pm2 stop telegram-bot
 ```
 
 ### Configurar inicio automático al bootear el servidor
+
 ```bash
 pm2 startup
 pm2 save
 ```
+
+---
+
+## Producción en Oracle Free Tier + DuckDNS
+
+1. Instalá dependencias de sistema en la VM:
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg nginx certbot python3-certbot-nginx
+sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
+```
+
+2. Configurá DNS dinámico con DuckDNS para apuntar a tu IP pública.
+
+3. Exponé solo `80/443` en Oracle (Security List/NSG). El puerto `3000` debe quedar interno.
+
+4. Usá Nginx como reverse proxy HTTPS hacia Node (`127.0.0.1:3000`) y desactivá buffering para SSE:
+
+```nginx
+location /api/progress/ {
+  proxy_pass http://127.0.0.1:3000;
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_buffering off;
+  proxy_cache off;
+}
+
+location / {
+  proxy_pass http://127.0.0.1:3000;
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+5. Emití certificado TLS con Let's Encrypt:
+
+```bash
+sudo certbot --nginx -d tu-subdominio.duckdns.org
+```
+
+6. Definí `WEB_BASE_URL=https://tu-subdominio.duckdns.org` en `.env`.
 
 ---
 
@@ -168,6 +231,7 @@ yt-dlp -U
 ```
 
 O forzar reinstalación:
+
 ```bash
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
@@ -196,7 +260,7 @@ bot-wpp/
 ├── .env.example
 ├── .env                          # Gitignored
 ├── .gitignore
-├── ecosystem.config.js           # Config de PM2
+├── ecosystem.config.cjs          # Config de PM2
 ├── package.json
 └── README.md
 ```
@@ -206,11 +270,13 @@ bot-wpp/
 ## Notas sobre stickers
 
 ### Estáticos
+
 - Formato: WebP, 512×512 px
 - Enviá una foto directamente (comprimida) o como documento
 - Soporta: JPEG, PNG, WEBP, GIF estático
 
 ### Animados
+
 - Formato: WebM con codec VP9, máximo 3 segundos, máximo 512×512 px
 - Reenviá cualquier sticker animado o de video para convertirlo
 - Nota: los stickers `.tgs` (lottie/animados clásicos) pueden no convertirse correctamente ya que requieren renderizado especial
@@ -220,21 +286,26 @@ bot-wpp/
 ## Troubleshooting
 
 ### "No autorizado" al usar el bot
+
 Verificá que `OWNER_CHAT_ID` en `.env` sea tu User ID numérico correcto. Podés confirmarlo con @userinfobot.
 
 ### Error "yt-dlp no está instalado"
+
 ```bash
 which yt-dlp
 yt-dlp --version
 ```
 
 ### El video no se envía (supera límite)
+
 Telegram tiene un límite de 50 MB para bots. Reducí `MAX_FILE_SIZE_MB` en `.env`.
 
 ### Error de Supabase
+
 Verificá que `SUPABASE_URL` y `SUPABASE_ANON_KEY` sean correctos y que la tabla `downloads` exista.
 
 ### El bot no responde en producción
+
 ```bash
 pm2 logs telegram-bot --lines 50
 ```

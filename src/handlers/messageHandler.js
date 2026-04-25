@@ -1,13 +1,12 @@
-import { isAuthorized } from '../utils/auth.js';
-import { logger } from '../utils/logger.js';
-import { handleDownload } from './downloadHandler.js';
+import { isAuthorized } from "../utils/auth.js";
+import { logger } from "../utils/logger.js";
+import { handleDownload } from "./downloadHandler.js";
 import {
   handleStaticSticker,
-  handleAnimatedSticker,
   handleDocumentSticker,
   handleStickerToWhatsapp,
-} from './stickerHandler.js';
-import { formatHistoryMessage } from './historyHandler.js';
+} from "./stickerHandler.js";
+import { formatHistoryMessage } from "./historyHandler.js";
 
 /**
  * Router principal de mensajes entrantes para el bot de Telegram.
@@ -45,8 +44,8 @@ async function authMiddleware(ctx, next) {
   const chatId = ctx.from?.id;
 
   if (!isAuthorized(chatId)) {
-    logger.warn('[messageHandler] Mensaje de usuario no autorizado rechazado.');
-    await ctx.reply('No autorizado.').catch(() => {});
+    logger.warn("[messageHandler] Mensaje de usuario no autorizado rechazado.");
+    await ctx.reply("No autorizado.").catch(() => {});
     return; // No llamar a next()
   }
 
@@ -64,70 +63,57 @@ export function registerHandlers(bot) {
   // --- Comandos ---
 
   /** /start y /help → menú de ayuda */
-  bot.command(['start', 'help'], (ctx) => ctx.reply(HELP_MENU));
+  bot.command(["start", "help"], (ctx) => ctx.reply(HELP_MENU));
 
   /** /historial → últimas 10 descargas */
-  bot.command('historial', async (ctx) => {
+  bot.command("historial", async (ctx) => {
     const historyText = await formatHistoryMessage(10);
     await ctx.reply(historyText);
   });
 
   // --- Mensajes ---
-
   /**
-   * Foto enviada como imagen comprimida → sticker estático
-   * Las fotos comprimidas están en ctx.message.photo
+   * Router único para evitar que múltiples handlers respondan al mismo update.
+   * grammy ejecuta todos los handlers que matchean, por eso centralizamos el flujo.
    */
-  bot.on('message:photo', async (ctx) => {
-    await handleStaticSticker(ctx);
-  });
+  bot.on("message", async (ctx) => {
+    const msg = ctx.message;
 
-  /**
-   * Documento enviado → puede ser imagen (para sticker) o ignorar si no es imagen
-   */
-  bot.on('message:document', async (ctx) => {
-    const doc = ctx.message.document;
-    const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-
-    if (doc.mime_type && imageTypes.includes(doc.mime_type)) {
-      await handleDocumentSticker(ctx);
-    } else {
-      await ctx.reply(
-        'Solo proceso imágenes como documentos (JPEG, PNG, WEBP, GIF). ' +
-        'Para videos, enviame el enlace directamente.'
-      );
-    }
-  });
-
-  /**
-   * Sticker recibido → convertir al formato WebP compatible con WhatsApp
-   */
-  bot.on('message:sticker', async (ctx) => {
-    await handleStickerToWhatsapp(ctx);
-  });
-
-  /**
-   * Mensaje de texto → detectar URL para descargar o mostrar ayuda
-   */
-  bot.on('message:text', async (ctx) => {
-    const text = ctx.message.text;
-
-    const urlMatch = text.match(URL_REGEX);
-    if (urlMatch) {
-      await handleDownload(ctx, urlMatch[0]);
+    if (msg.photo) {
+      await handleStaticSticker(ctx);
       return;
     }
 
-    // Texto sin URL ni comando reconocido → menú de ayuda
+    if (msg.document) {
+      const imageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      const mimeType = msg.document.mime_type || "";
+
+      if (imageTypes.includes(mimeType)) {
+        await handleDocumentSticker(ctx);
+      } else {
+        await ctx.reply(
+          "Solo proceso imágenes como documentos (JPEG, PNG, WEBP, GIF). " +
+            "Para videos, enviame el enlace directamente.",
+        );
+      }
+      return;
+    }
+
+    if (msg.sticker) {
+      await handleStickerToWhatsapp(ctx);
+      return;
+    }
+
+    if (msg.text) {
+      const urlMatch = msg.text.match(URL_REGEX);
+      if (urlMatch) {
+        await handleDownload(ctx, urlMatch[0]);
+        return;
+      }
+    }
+
     await ctx.reply(HELP_MENU);
   });
 
-  /**
-   * Cualquier otro tipo de mensaje → menú de ayuda
-   */
-  bot.on('message', async (ctx) => {
-    await ctx.reply(HELP_MENU);
-  });
-
-  logger.info('[messageHandler] Handlers registrados correctamente.');
+  logger.info("[messageHandler] Handlers registrados correctamente.");
 }

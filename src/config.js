@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 
 /**
  * Lee y valida todas las variables de entorno requeridas al arrancar.
@@ -6,10 +6,10 @@ import 'dotenv/config';
  */
 
 const REQUIRED_VARS = [
-  'TELEGRAM_BOT_TOKEN',
-  'OWNER_CHAT_ID',
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY',
+  "TELEGRAM_BOT_TOKEN",
+  "OWNER_CHAT_ID",
+  "SUPABASE_URL",
+  "SUPABASE_ANON_KEY",
 ];
 
 /**
@@ -21,17 +21,17 @@ function validateEnv() {
 
   if (missing.length > 0) {
     throw new Error(
-      `[config] Variables de entorno faltantes: ${missing.join(', ')}\n` +
-      'Copiá .env.example a .env y completá los valores requeridos.'
+      `[config] Variables de entorno faltantes: ${missing.join(", ")}\n` +
+        "Copiá .env.example a .env y completá los valores requeridos.",
     );
   }
 
   // Validar formato del token de Telegram
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token.includes(':') || token.length < 40) {
+  if (!token.includes(":") || token.length < 40) {
     throw new Error(
       `[config] TELEGRAM_BOT_TOKEN inválido. ` +
-      'Debe tener el formato provisto por @BotFather: 123456789:AAA...'
+        "Debe tener el formato provisto por @BotFather: 123456789:AAA...",
     );
   }
 
@@ -40,7 +40,7 @@ function validateEnv() {
   if (!/^\d+$/.test(ownerId)) {
     throw new Error(
       `[config] OWNER_CHAT_ID inválido: "${ownerId}". ` +
-      'Debe ser un número entero (tu Telegram User ID).'
+        "Debe ser un número entero (tu Telegram User ID).",
     );
   }
 }
@@ -61,10 +61,10 @@ export const config = {
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
 
   /** Directorio donde se guardan los archivos temporales de descarga */
-  tempDir: process.env.TEMP_DIR || './temp',
+  tempDir: process.env.TEMP_DIR || "./temp",
 
   /** Tamaño máximo de archivo que yt-dlp puede descargar (en MB) */
-  maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB || '50', 10),
+  maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB || "50", 10),
 
   /**
    * Ruta opcional a un archivo Netscape cookies.txt para autenticar yt-dlp.
@@ -79,7 +79,7 @@ export const config = {
   ytdlpProxy: process.env.YTDLP_PROXY || null,
 
   /** Timeout para operaciones de yt-dlp (en milisegundos) */
-  ytdlpTimeoutMs: parseInt(process.env.YTDLP_TIMEOUT_MS || '120000', 10),
+  ytdlpTimeoutMs: parseInt(process.env.YTDLP_TIMEOUT_MS || "120000", 10),
 
   /**
    * Límite de tamaño de archivos enviables por bots de Telegram (en bytes).
@@ -88,11 +88,11 @@ export const config = {
   telegramMaxBytes: 50 * 1024 * 1024,
 
   /** Puerto del servidor web (PWA + API). */
-  webPort: parseInt(process.env.WEB_PORT || '3000', 10),
+  webPort: parseInt(process.env.WEB_PORT || "3000", 10),
 
   /**
    * URL base pública del servidor web. Se usa para generar links de descarga.
-   * En producción: la IP pública o dominio del servidor.
+   * Si no se define, el backend la deduce por request (host/proto), útil con proxy HTTPS.
    */
-  webBaseUrl: process.env.WEB_BASE_URL || 'http://localhost:3000',
+  webBaseUrl: process.env.WEB_BASE_URL?.trim() || null,
 };

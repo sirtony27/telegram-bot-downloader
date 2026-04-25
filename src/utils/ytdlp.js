@@ -1,6 +1,6 @@
-import { execFile } from 'node:child_process';
-import { config } from '../config.js';
-import { logger } from './logger.js';
+import { execFile } from "node:child_process";
+import { config } from "../config.js";
+import { logger } from "./logger.js";
 
 /**
  * Wrapper de yt-dlp usando child_process.execFile para evitar inyección de shell.
@@ -14,47 +14,62 @@ import { logger } from './logger.js';
  * @returns {Promise<string>} stdout del proceso yt-dlp.
  * @throws {Error} Si yt-dlp falla, es cancelado por timeout, o el proceso termina con error.
  */
-export function runYtDlp(args, timeoutMs = config.ytdlpTimeoutMs, onProgress = null) {
+export function runYtDlp(
+  args,
+  timeoutMs = config.ytdlpTimeoutMs,
+  onProgress = null,
+) {
   return new Promise((resolve, reject) => {
     let timedOut = false;
 
-    const child = execFile('yt-dlp', args, { timeout: 0 }, (error, stdout, stderr) => {
-      if (timedOut) return; // Ya fue rechazado por el timeout
+    const child = execFile(
+      "yt-dlp",
+      args,
+      { timeout: 0 },
+      (error, stdout, stderr) => {
+        if (timedOut) return; // Ya fue rechazado por el timeout
 
-      if (error) {
-        // yt-dlp escribe errores descriptivos en stderr
-        const detail = stderr?.trim() || error.message;
-        reject(new Error(`yt-dlp falló: ${detail}`));
-        return;
-      }
+        if (error) {
+          // yt-dlp escribe errores descriptivos en stderr
+          const detail = stderr?.trim() || error.message;
+          reject(new Error(`yt-dlp falló: ${detail}`));
+          return;
+        }
 
-      resolve(stdout);
-    });
+        resolve(stdout);
+      },
+    );
 
-    if (onProgress && child.stdout) {
-      child.stdout.on('data', (data) => {
-        onProgress(data.toString());
-      });
+    if (onProgress) {
+      const handleChunk = (data) => onProgress(data.toString());
+      if (child.stdout) child.stdout.on("data", handleChunk);
+      if (child.stderr) child.stderr.on("data", handleChunk);
     }
 
     // Implementar timeout manualmente para poder matar el proceso hijo
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
+      child.kill("SIGTERM");
       // Forzar SIGKILL si no termina en 5 segundos adicionales
-      setTimeout(() => child.kill('SIGKILL'), 5000);
+      setTimeout(() => child.kill("SIGKILL"), 5000);
       reject(new Error(`yt-dlp superó el timeout de ${timeoutMs}ms`));
     }, timeoutMs);
 
-    child.on('close', () => clearTimeout(timer));
-    child.on('error', (err) => {
+    child.on("close", () => clearTimeout(timer));
+    child.on("error", (err) => {
       clearTimeout(timer);
       if (!timedOut) {
-        reject(new Error(`No se pudo iniciar yt-dlp: ${err.message}. ¿Está instalado en el sistema?`));
+        reject(
+          new Error(
+            `No se pudo iniciar yt-dlp: ${err.message}. ¿Está instalado en el sistema?`,
+          ),
+        );
       }
     });
 
-    logger.debug(`[ytdlp] Ejecutando con args: ${args.slice(0, 3).join(' ')}...`);
+    logger.debug(
+      `[ytdlp] Ejecutando con args: ${args.slice(0, 3).join(" ")}...`,
+    );
   });
 }
 
@@ -65,15 +80,11 @@ export function runYtDlp(args, timeoutMs = config.ytdlpTimeoutMs, onProgress = n
  * @throws {Error} Si no se puede obtener la información.
  */
 export async function getVideoInfo(url) {
-  const stdout = await runYtDlp([
-    '--dump-json',
-    '--no-playlist',
-    url,
-  ]);
+  const stdout = await runYtDlp(["--dump-json", "--no-playlist", url]);
 
   try {
-    return JSON.parse(stdout.trim().split('\n')[0]);
+    return JSON.parse(stdout.trim().split("\n")[0]);
   } catch {
-    throw new Error('No se pudo parsear la información del video.');
+    throw new Error("No se pudo parsear la información del video.");
   }
 }

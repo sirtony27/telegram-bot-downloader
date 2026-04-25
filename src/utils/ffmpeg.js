@@ -1,6 +1,5 @@
-import { execFile } from 'node:child_process';
-import { config } from '../config.js';
-import { logger } from './logger.js';
+import { execFile } from "node:child_process";
+import { logger } from "./logger.js";
 
 /**
  * Wrapper de ffmpeg usando child_process.execFile.
@@ -22,34 +21,46 @@ export function runFfmpeg(args, timeoutMs = 60000) {
   return new Promise((resolve, reject) => {
     let timedOut = false;
 
-    const child = execFile('ffmpeg', args, { timeout: 0 }, (error, _stdout, stderr) => {
-      if (timedOut) return;
+    const child = execFile(
+      "ffmpeg",
+      args,
+      { timeout: 0 },
+      (error, _stdout, stderr) => {
+        if (timedOut) return;
 
-      if (error) {
-        const detail = stderr?.trim().split('\n').slice(-3).join(' ') || error.message;
-        reject(new Error(`ffmpeg falló: ${detail}`));
-        return;
-      }
+        if (error) {
+          const detail =
+            stderr?.trim().split("\n").slice(-3).join(" ") || error.message;
+          reject(new Error(`ffmpeg falló: ${detail}`));
+          return;
+        }
 
-      resolve();
-    });
+        resolve();
+      },
+    );
 
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
-      setTimeout(() => child.kill('SIGKILL'), 5000);
+      child.kill("SIGTERM");
+      setTimeout(() => child.kill("SIGKILL"), 5000);
       reject(new Error(`ffmpeg superó el timeout de ${timeoutMs}ms`));
     }, timeoutMs);
 
-    child.on('close', () => clearTimeout(timer));
-    child.on('error', (err) => {
+    child.on("close", () => clearTimeout(timer));
+    child.on("error", (err) => {
       clearTimeout(timer);
       if (!timedOut) {
-        reject(new Error(`No se pudo iniciar ffmpeg: ${err.message}. ¿Está instalado en el sistema?`));
+        reject(
+          new Error(
+            `No se pudo iniciar ffmpeg: ${err.message}. ¿Está instalado en el sistema?`,
+          ),
+        );
       }
     });
 
-    logger.debug(`[ffmpeg] Ejecutando con args: ${args.slice(0, 4).join(' ')}...`);
+    logger.debug(
+      `[ffmpeg] Ejecutando con args: ${args.slice(0, 4).join(" ")}...`,
+    );
   });
 }
 
@@ -63,18 +74,25 @@ export function runFfmpeg(args, timeoutMs = 60000) {
  */
 export async function convertToAnimatedStickerWebm(inputPath, outputPath) {
   await runFfmpeg([
-    '-y',
-    '-i', inputPath,
-    '-t', '3',                        // Máximo 3 segundos (límite Telegram)
-    '-vf',
+    "-y",
+    "-i",
+    inputPath,
+    "-t",
+    "3", // Máximo 3 segundos (límite Telegram)
+    "-vf",
     // Escalar manteniendo aspect ratio, centrar con padding transparente en 512×512
-    'scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,fps=30',
-    '-c:v', 'libvpx-vp9',            // Codec VP9 requerido por Telegram
-    '-pix_fmt', 'yuva420p',           // Con canal alpha (transparencia)
-    '-b:v', '256k',
-    '-crf', '10',
-    '-an',                            // Sin audio
-    '-loop', '0',
+    "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,fps=30",
+    "-c:v",
+    "libvpx-vp9", // Codec VP9 requerido por Telegram
+    "-pix_fmt",
+    "yuva420p", // Con canal alpha (transparencia)
+    "-b:v",
+    "256k",
+    "-crf",
+    "10",
+    "-an", // Sin audio
+    "-loop",
+    "0",
     outputPath,
   ]);
 }
@@ -87,16 +105,22 @@ export async function convertToAnimatedStickerWebm(inputPath, outputPath) {
  */
 export async function convertVideoToStickerWebm(inputPath, outputPath) {
   await runFfmpeg([
-    '-y',
-    '-i', inputPath,
-    '-t', '3',
-    '-vf',
-    'scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,fps=30',
-    '-c:v', 'libvpx-vp9',
-    '-pix_fmt', 'yuva420p',
-    '-b:v', '256k',
-    '-crf', '10',
-    '-an',
+    "-y",
+    "-i",
+    inputPath,
+    "-t",
+    "3",
+    "-vf",
+    "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,fps=30",
+    "-c:v",
+    "libvpx-vp9",
+    "-pix_fmt",
+    "yuva420p",
+    "-b:v",
+    "256k",
+    "-crf",
+    "10",
+    "-an",
     outputPath,
   ]);
 }
@@ -109,18 +133,27 @@ export async function convertVideoToStickerWebm(inputPath, outputPath) {
  * @param {number} [quality=70] - Calidad del WebP (0-100). Reducir si el archivo es muy grande.
  * @returns {Promise<void>}
  */
-export async function convertToWhatsappAnimatedWebp(inputPath, outputPath, quality = 70) {
+export async function convertToWhatsappAnimatedWebp(
+  inputPath,
+  outputPath,
+  quality = 70,
+) {
   await runFfmpeg([
-    '-y',
-    '-i', inputPath,
-    '-t', '6',                             // Máximo 6 segundos (límite WhatsApp)
-    '-vf',
+    "-y",
+    "-i",
+    inputPath,
+    "-t",
+    "6", // Máximo 6 segundos (límite WhatsApp)
+    "-vf",
     // Escalar para que el lado más largo sea 512 (sin padding), 15fps para reducir tamaño
-    'scale=512:512:force_original_aspect_ratio=decrease,fps=15',
-    '-c:v', 'libwebp',                     // Encoder WebP animado
-    '-loop', '0',                          // Loop infinito
-    '-quality', String(quality),           // Calidad ajustable
-    '-an',                                 // Sin audio
+    "scale=512:512:force_original_aspect_ratio=decrease,fps=15",
+    "-c:v",
+    "libwebp", // Encoder WebP animado
+    "-loop",
+    "0", // Loop infinito
+    "-quality",
+    String(quality), // Calidad ajustable
+    "-an", // Sin audio
     outputPath,
   ]);
 }
