@@ -52,7 +52,11 @@ export async function handleDownload(ctx, url) {
     '--no-playlist',
     '--max-filesize', `${config.maxFileSizeMb}M`,
     '-o', outputTemplate,
-    '--merge-output-format', 'mp4',
+    // Selector de formato con fallback progresivo:
+    // 1. mp4 con audio m4a (ideal para Telegram)
+    // 2. cualquier video + audio (ffmpeg los mergea)
+    // 3. mejor formato único disponible (pre-merged)
+    '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
     '--no-warnings',
     '--print', 'filename',
     '--no-simulate',
