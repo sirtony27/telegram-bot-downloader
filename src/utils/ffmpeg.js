@@ -100,3 +100,27 @@ export async function convertVideoToStickerWebm(inputPath, outputPath) {
     outputPath,
   ]);
 }
+
+/**
+ * Convierte un WebM (sticker de video de Telegram) en un WebP animado compatible con WhatsApp.
+ * Specs WhatsApp: 512×512, max 500KB, max 6 segundos, transparencia, loop infinito.
+ * @param {string} inputPath - Ruta al archivo de entrada (WebM, GIF, MP4, etc.).
+ * @param {string} outputPath - Ruta de salida para el .webp animado.
+ * @param {number} [quality=70] - Calidad del WebP (0-100). Reducir si el archivo es muy grande.
+ * @returns {Promise<void>}
+ */
+export async function convertToWhatsappAnimatedWebp(inputPath, outputPath, quality = 70) {
+  await runFfmpeg([
+    '-y',
+    '-i', inputPath,
+    '-t', '6',                             // Máximo 6 segundos (límite WhatsApp)
+    '-vf',
+    // Escalar 512×512 con padding transparente, 15fps para reducir tamaño
+    'scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,fps=15',
+    '-c:v', 'libwebp',                     // Encoder WebP animado
+    '-loop', '0',                          // Loop infinito
+    '-quality', String(quality),           // Calidad ajustable
+    '-an',                                 // Sin audio
+    outputPath,
+  ]);
+}

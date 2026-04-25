@@ -5,6 +5,7 @@ import {
   handleStaticSticker,
   handleAnimatedSticker,
   handleDocumentSticker,
+  handleStickerToWhatsapp,
 } from './stickerHandler.js';
 import { formatHistoryMessage } from './historyHandler.js';
 
@@ -22,11 +23,11 @@ const HELP_MENU = `¡Hola! Esto es lo que puedo hacer:
 📥 Descargar videos
 Enviame un enlace de TikTok, Instagram, YouTube, Twitter/X u otro sitio compatible.
 
-🖼 Crear sticker estático
-Enviame una foto (como imagen comprimida o como documento) para convertirla en sticker.
+🖼 Crear sticker para Telegram
+Enviame una foto (como imagen o documento) para convertirla en sticker de Telegram.
 
-✨ Convertir sticker animado
-Reenviame un sticker animado de video para adaptarlo al formato de Telegram.
+👋 Convertir sticker para WhatsApp
+Reenviame cualquier sticker de Telegram y te devuelvo el archivo .webp listo para importar en WhatsApp.
 
 📋 Ver historial
 Escribí /historial para ver tus últimas 10 descargas.
@@ -99,19 +100,10 @@ export function registerHandlers(bot) {
   });
 
   /**
-   * Sticker recibido → si es animado o de video, convertir; si es estático, avisar
+   * Sticker recibido → convertir al formato WebP compatible con WhatsApp
    */
   bot.on('message:sticker', async (ctx) => {
-    const sticker = ctx.message.sticker;
-
-    if (sticker.is_animated || sticker.is_video) {
-      await handleAnimatedSticker(ctx);
-    } else {
-      await ctx.reply(
-        '⚠️ Recibí un sticker estático. Solo convierto stickers animados o de video.\n' +
-        'Enviame una foto si querés crear un sticker estático.'
-      );
-    }
+    await handleStickerToWhatsapp(ctx);
   });
 
   /**

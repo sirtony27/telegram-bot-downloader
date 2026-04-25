@@ -1,10 +1,10 @@
-import { writeFile, readFile, unlink } from 'node:fs/promises';
+import { writeFile, readFile, unlink, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { InputFile } from 'grammy';
 import sharp from 'sharp';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
-import { convertToAnimatedStickerWebm } from '../utils/ffmpeg.js';
+import { convertToAnimatedStickerWebm, convertToWhatsappAnimatedWebp } from '../utils/ffmpeg.js';
 
 /**
  * Handler de stickers para Telegram.
@@ -183,5 +183,94 @@ export async function handleAnimatedSticker(ctx) {
       unlink(f).catch(() => {});
     }
     unlink(outputPath).catch(() => {});
+  }
+}
+
+/**
+ * Convierte un sticker de Telegram a formato WebP compatible con WhatsApp.
+ *
+ * Soporte por tipo:
+ * - Estático (.webp)   → Sharp → 512×512 WebP optimizado (max 100KB)
+ * - Video (.webm)      → ffmpeg → WebP animado (max 500KB, max 6s)
+ * - Animado (.tgs)     → no soportado (formato Lottie propietario)
+ *
+ * @param {import('grammy').Context} ctx - Contexto de grammy.
+ * @returns {Promise<void>}
+ */
+export async function handleStickerToWhatsapp(ctx) {
+  const sticker = ctx.message?.sticker;
+  const timestamp = Date.now();
+  let inputPath = null;
+  let outputPath = null;
+
+  try {
+    if (!sticker) throw new Error('No se encontró sticker en el mensaje.');
+
+    logger.info(`[stickerHandler] Convirtiendo sticker a WhatsApp: animated=${sticker.is_animated}, video=${sticker.is_video}`);
+
+    // TGS (Lottie) requiere un renderer externo — no soportado por ahora
+    if (sticker.is_animated) {
+      await ctx.reply(
+        '⚠️ Los stickers en formato .tgs (Lottie) no se pueden convertir directamente.\n' +
+        'Probá reenviando un sticker de *video* (los que tienen el ícono ▶️ en Telegram).',
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    const statusMsg = await ctx.reply('⏳ Convirtiendo sticker para WhatsApp...');
+    const mediaBuffer = await downloadTelegramFile(ctx, sticker.file_id);
+
+    // --- Sticker estático (WebP) → Sharp → WebP 512×512 ---
+    if (!sticker.is_video) {
+      let stickerBuffer = await sharp(mediaBuffer)
+        .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      // Si supera 100KB, reducir calidad
+      if (stickerBuffer.length > 100 * 1024) {
+        stickerBuffer = await sharp(mediaBuffer)
+          .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .webp({ quality: 55 })
+          .toBuffer();
+      }
+
+      await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
+      await ctx.replyWithDocument(
+        new InputFile(stickerBuffer, 'sticker_wa.webp'),
+        { caption: '✅ Sticker estático listo para WhatsApp. Guardalo e importalo con WASticker o Sticker Studio.' }
+      );
+      logger.info('[stickerHandler] Sticker estático para WhatsApp enviado.');
+      return;
+    }
+
+    // --- Sticker de video (WebM VP9) → ffmpeg → WebP animado ---
+    inputPath = path.join(config.tempDir, `wa_in_${timestamp}.webm`);
+    outputPath = path.join(config.tempDir, `wa_out_${timestamp}.webp`);
+
+    await writeFile(inputPath, mediaBuffer);
+    await convertToWhatsappAnimatedWebp(inputPath, outputPath, 70);
+
+    // Si supera 500KB, reconvertir con menor calidad
+    const { size } = await stat(outputPath);
+    if (size > 500 * 1024) {
+      logger.info(`[stickerHandler] WebP animado muy grande (${(size / 1024).toFixed(0)}KB), reduciendo calidad...`);
+      await convertToWhatsappAnimatedWebp(inputPath, outputPath, 45);
+    }
+
+    await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
+    await ctx.replyWithDocument(
+      new InputFile(outputPath, 'sticker_wa.webp'),
+      { caption: '✅ Sticker animado listo para WhatsApp. Importalo con WASticker o Sticker Studio.' }
+    );
+    logger.info('[stickerHandler] Sticker animado para WhatsApp enviado.');
+
+  } catch (err) {
+    logger.error('[stickerHandler] Error al convertir sticker a WhatsApp:', err);
+    await ctx.reply('❌ No pude convertir el sticker. Intentá con otro.').catch(() => {});
+  } finally {
+    if (inputPath) unlink(inputPath).catch(() => {});
+    if (outputPath) unlink(outputPath).catch(() => {});
   }
 }
