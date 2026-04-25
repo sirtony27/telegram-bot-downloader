@@ -145,7 +145,12 @@ export async function createWebServer(getBotUsername = () => undefined) {
     if (!url)
       return res.status(400).json({ success: false, error: "URL requerida" });
     try {
-      const infoArgs = ["--dump-json", "--no-playlist"];
+      const infoArgs = [
+        "--dump-json",
+        "--no-playlist",
+        "--js-runtimes",
+        "node",
+      ];
       if (config.cookiesFile) infoArgs.push("--cookies", config.cookiesFile);
       if (config.ytdlpProxy) infoArgs.push("--proxy", config.ytdlpProxy);
       infoArgs.push(url);
@@ -205,6 +210,8 @@ export async function createWebServer(getBotUsername = () => undefined) {
         "15", // Límite de seguridad
         "--max-filesize",
         `${config.maxFileSizeMb}M`,
+        "--js-runtimes",
+        "node",
         "-f",
         formatArg,
         "-o",

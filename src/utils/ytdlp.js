@@ -80,6 +80,9 @@ export function runYtDlp(
  */
 export function withYtDlpPerformanceArgs(args) {
   const nextArgs = [...args];
+  const proxy = config.ytdlpProxy?.trim().toLowerCase() || "";
+  const hasSocksProxy = proxy.startsWith("socks");
+  const downloaderName = config.ytdlpExternalDownloader?.trim() || null;
 
   if (config.ytdlpConcurrency > 1) {
     nextArgs.push("-N", String(config.ytdlpConcurrency));
@@ -89,14 +92,19 @@ export function withYtDlpPerformanceArgs(args) {
     nextArgs.push("--http-chunk-size", `${config.ytdlpHttpChunkSizeMb}M`);
   }
 
-  if (config.ytdlpExternalDownloader) {
-    nextArgs.push("--downloader", config.ytdlpExternalDownloader);
+  // aria2c no soporta proxies socks5/socks5h para --all-proxy; evitar fallo duro.
+  if (downloaderName && !(hasSocksProxy && downloaderName === "aria2c")) {
+    nextArgs.push("--downloader", downloaderName);
     if (config.ytdlpExternalDownloaderArgs.length > 0) {
       nextArgs.push(
         "--downloader-args",
-        config.ytdlpExternalDownloaderArgs.join(" "),
+        `${downloaderName}:${config.ytdlpExternalDownloaderArgs.join(" ")}`,
       );
     }
+  } else if (downloaderName && hasSocksProxy && downloaderName === "aria2c") {
+    logger.warn(
+      "[ytdlp] aria2c desactivado: YTDLP_PROXY usa socks* y aria2 no soporta ese formato de proxy.",
+    );
   }
 
   return nextArgs;
