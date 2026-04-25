@@ -143,12 +143,7 @@ export async function createWebServer(getBotUsername = () => undefined) {
       ];
       if (config.cookiesFile) infoArgs.push("--cookies", config.cookiesFile);
       if (config.ytdlpProxy) infoArgs.push("--proxy", config.ytdlpProxy);
-      if (url.includes("tiktok.com")) {
-        infoArgs.push(
-          "--extractor-args",
-          "tiktok:api_hostname=api16-normal-c-useast1a.tiktokv.com;app_info=7355728"
-        );
-      }
+
       infoArgs.push(url);
 
       const infoOut = await runYtDlp(infoArgs);
@@ -222,12 +217,7 @@ export async function createWebServer(getBotUsername = () => undefined) {
 
       if (config.cookiesFile) args.push("--cookies", config.cookiesFile);
       if (config.ytdlpProxy) args.push("--proxy", config.ytdlpProxy);
-      if (url.includes("tiktok.com")) {
-        args.push(
-          "--extractor-args",
-          "tiktok:api_hostname=api16-normal-c-useast1a.tiktokv.com;app_info=7355728"
-        );
-      }
+
       args.push("--no-color"); // Evitar ANSI color codes en el stdout
       args.push(url);
 

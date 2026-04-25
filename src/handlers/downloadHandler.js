@@ -70,10 +70,7 @@ export async function handleDownload(ctx, url) {
 
   // Flags especiales según plataforma
   if (isTikTok(url)) {
-    ytdlpArgs.push(
-      "--extractor-args",
-      "tiktok:api_hostname=api16-normal-c-useast1a.tiktokv.com;app_info=7355728"
-    );
+    ytdlpArgs.push("--extractor-args", "tiktok:app_name=tiktok_web");
   }
   if (isInstagram(url)) {
     ytdlpArgs.push(
