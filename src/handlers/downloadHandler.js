@@ -76,11 +76,6 @@ export async function handleDownload(ctx, url) {
   ];
 
   // Flags especiales según plataforma
-  if (isYouTube(url)) {
-    // Cliente iOS: hasta 1080p sin PO Token, compatible con WARP/Cloudflare IP.
-    // Android requiere PO Token para formatos >360p, por eso lo evitamos.
-    ytdlpArgs.push('--extractor-args', 'youtube:player_client=ios,web');
-  }
   if (isTikTok(url)) {
     ytdlpArgs.push('--extractor-args', 'tiktok:app_name=tiktok_web');
   }
