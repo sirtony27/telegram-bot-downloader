@@ -12,6 +12,20 @@ import { logDownload, extractPlatform } from './historyHandler.js';
  */
 
 /**
+ * Detecta si la URL es de YouTube.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isYouTube(url) {
+  try {
+    const h = new URL(url).hostname;
+    return h.includes('youtube.com') || h.includes('youtu.be');
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Detecta si la URL es de TikTok para aplicar flags especiales.
  * @param {string} url
  * @returns {boolean}
@@ -52,17 +66,21 @@ export async function handleDownload(ctx, url) {
     '--no-playlist',
     '--max-filesize', `${config.maxFileSizeMb}M`,
     '-o', outputTemplate,
-    // Selector de formato con fallback progresivo:
-    // 1. mp4 con audio m4a (ideal para Telegram)
-    // 2. cualquier video + audio (ffmpeg los mergea)
-    // 3. mejor formato único disponible (pre-merged)
+    // Selector de formato con fallback progresivo
     '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
     '--no-warnings',
     '--print', 'filename',
     '--no-simulate',
+    // Usar Node.js como JS runtime (ya instalado en el servidor)
+    '--js-runtimes', 'node',
   ];
 
   // Flags especiales según plataforma
+  if (isYouTube(url)) {
+    // Usar cliente Android + TV: evita el bloqueo de IPs de servidor sin necesitar cookies válidas.
+    // YouTube rota las cookies automáticamente, haciendo que el método de cookies sea poco confiable.
+    ytdlpArgs.push('--extractor-args', 'youtube:player_client=android,tv_embedded');
+  }
   if (isTikTok(url)) {
     ytdlpArgs.push('--extractor-args', 'tiktok:app_name=tiktok_web');
   }
@@ -70,12 +88,13 @@ export async function handleDownload(ctx, url) {
     ytdlpArgs.push('--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
   }
 
-  // Pasar cookies si están configuradas (necesario para YouTube e Instagram desde servidores)
+  // Pasar cookies si están configuradas (útil para Instagram y sitios que requieren login)
   if (config.cookiesFile) {
     ytdlpArgs.push('--cookies', config.cookiesFile);
   }
 
   ytdlpArgs.push(url);
+
 
   let filePath = null;
   let statusMsgId = null;
