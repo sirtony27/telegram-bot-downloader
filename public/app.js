@@ -1,0 +1,291 @@
+/* ── State ───────────────────────────────────────────────────────────────── */
+let currentTab = 'home';
+let stickerType = 'whatsapp';
+let stickerDownloadUrl = null;
+let deferredInstallPrompt = null;
+
+/* ── Navigation ──────────────────────────────────────────────────────────── */
+function navigate(tab) {
+  document.getElementById(`page-${currentTab}`).classList.remove('active');
+  document.getElementById(`tab-${currentTab}`).classList.remove('active');
+  currentTab = tab;
+  document.getElementById(`page-${tab}`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'history') loadHistory();
+}
+
+/* ── Status ──────────────────────────────────────────────────────────────── */
+async function loadStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    const dot = document.getElementById('status-dot');
+    dot.classList.toggle('online', data.online);
+    document.getElementById('info-bot').textContent = data.online
+      ? `@${data.botUsername} ✓` : 'Offline';
+    document.getElementById('stat-uptime').textContent =
+      Math.floor(data.uptime / 60);
+  } catch {
+    document.getElementById('info-bot').textContent = 'Sin conexión';
+  }
+}
+
+async function loadHomeStats() {
+  try {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+    document.getElementById('stat-downloads').textContent = data.items?.length ?? 0;
+  } catch { /* ignore */ }
+}
+
+/* ── Platform detection ──────────────────────────────────────────────────── */
+const PLATFORMS = {
+  youtube:   { label: '▶️ YouTube',    emoji: '▶️' },
+  youtu:     { label: '▶️ YouTube',    emoji: '▶️' },
+  tiktok:    { label: '🎵 TikTok',     emoji: '🎵' },
+  instagram: { label: '📸 Instagram',  emoji: '📸' },
+  twitter:   { label: '🐦 Twitter/X',  emoji: '🐦' },
+  'x.com':   { label: '🐦 Twitter/X',  emoji: '🐦' },
+  facebook:  { label: '📘 Facebook',   emoji: '📘' },
+  reddit:    { label: '🤖 Reddit',     emoji: '🤖' },
+  twitch:    { label: '🟣 Twitch',     emoji: '🟣' },
+  vimeo:     { label: '🎬 Vimeo',      emoji: '🎬' },
+};
+
+function detectPlatform(url) {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    for (const [key, val] of Object.entries(PLATFORMS)) {
+      if (host.includes(key)) return val;
+    }
+  } catch { /* invalid url */ }
+  return null;
+}
+
+document.getElementById('dl-url').addEventListener('input', function () {
+  const badge = document.getElementById('dl-badge');
+  const p = detectPlatform(this.value.trim());
+  if (p) {
+    badge.textContent = p.label;
+    badge.className = 'platform-badge detected';
+  } else {
+    badge.textContent = '🌐 Pegá una URL para detectar la plataforma';
+    badge.className = 'platform-badge';
+  }
+});
+
+/* ── Downloader ──────────────────────────────────────────────────────────── */
+async function startDownload() {
+  const url = document.getElementById('dl-url').value.trim();
+  if (!url) return;
+
+  const btn = document.getElementById('dl-btn');
+  const result = document.getElementById('dl-result');
+  const errEl = document.getElementById('dl-error');
+
+  result.classList.remove('visible');
+  errEl.classList.remove('visible');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Descargando…';
+
+  try {
+    const res = await fetch('/api/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error || 'Error al descargar');
+
+    document.getElementById('dl-title').textContent = data.title || data.filename;
+    const link = document.getElementById('dl-link');
+    link.href = data.downloadUrl;
+    link.download = data.filename;
+    result.classList.add('visible');
+  } catch (err) {
+    errEl.textContent = '❌ ' + err.message;
+    errEl.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>Descargar</span>';
+  }
+}
+
+// Enter key on URL input
+document.getElementById('dl-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startDownload();
+});
+
+/* ── Stickers ────────────────────────────────────────────────────────────── */
+function setStickerType(type) {
+  stickerType = type;
+  document.getElementById('toggle-wa').classList.toggle('active', type === 'whatsapp');
+  document.getElementById('toggle-tg').classList.toggle('active', type === 'telegram');
+  // Reset result
+  document.getElementById('sticker-result').classList.remove('visible');
+  document.getElementById('sticker-error').classList.remove('visible');
+}
+
+function onFileSelected() {
+  const file = document.getElementById('sticker-file').files[0];
+  if (!file) return;
+
+  const preview = document.getElementById('sticker-preview');
+  preview.src = URL.createObjectURL(file);
+  preview.classList.add('visible');
+  document.getElementById('sticker-btn').disabled = false;
+  document.getElementById('sticker-result').classList.remove('visible');
+  document.getElementById('sticker-error').classList.remove('visible');
+}
+
+// Drag & drop
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  const file = e.dataTransfer?.files?.[0];
+  if (file && file.type.startsWith('image/')) {
+    const input = document.getElementById('sticker-file');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    onFileSelected();
+  }
+});
+
+async function convertSticker() {
+  const file = document.getElementById('sticker-file').files[0];
+  if (!file) return;
+
+  const btn = document.getElementById('sticker-btn');
+  const result = document.getElementById('sticker-result');
+  const errEl = document.getElementById('sticker-error');
+
+  result.classList.remove('visible');
+  errEl.classList.remove('visible');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Convirtiendo…';
+
+  try {
+    const form = new FormData();
+    form.append('image', file);
+    form.append('type', stickerType);
+
+    const res = await fetch('/api/sticker', { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error || 'Error al convertir');
+
+    stickerDownloadUrl = data.downloadUrl;
+    document.getElementById('sticker-size').textContent = `Tamaño: ${data.sizeKb} KB`;
+    const link = document.getElementById('sticker-link');
+    link.href = data.downloadUrl;
+
+    // Mostrar botón de compartir solo si Web Share API soporta archivos
+    const shareBtn = document.getElementById('sticker-share');
+    shareBtn.style.display = (navigator.share && stickerType === 'whatsapp') ? 'flex' : 'none';
+
+    result.classList.add('visible');
+  } catch (err) {
+    errEl.textContent = '❌ ' + err.message;
+    errEl.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>Convertir</span>';
+  }
+}
+
+async function shareSticker() {
+  if (!stickerDownloadUrl) return;
+  try {
+    const response = await fetch(stickerDownloadUrl);
+    const blob = await response.blob();
+    const file = new File([blob], 'sticker.webp', { type: 'image/webp' });
+
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Sticker para WhatsApp' });
+    } else {
+      // Fallback: descarga directa
+      const a = document.createElement('a');
+      a.href = stickerDownloadUrl;
+      a.download = 'sticker.webp';
+      a.click();
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') console.error('Share failed:', err);
+  }
+}
+
+/* ── History ─────────────────────────────────────────────────────────────── */
+const PLATFORM_ICONS = {
+  YouTube: '▶️', TikTok: '🎵', Instagram: '📸', Twitter: '🐦',
+  Facebook: '📘', Reddit: '🤖', Twitch: '🟣', Vimeo: '🎬',
+};
+
+async function loadHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="empty-state"><span class="empty-icon">⏳</span><span class="empty-text">Cargando…</span></div>';
+
+  try {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+    const items = data.items ?? [];
+
+    if (items.length === 0) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">📭</span><span class="empty-text">No hay descargas registradas aún.</span></div>';
+      return;
+    }
+
+    list.innerHTML = items.map(item => {
+      const icon = PLATFORM_ICONS[item.platform] ?? '🌐';
+      const date = new Date(item.created_at).toLocaleString('es-AR', {
+        day: '2-digit', month: '2-digit', year: '2-digit',
+        hour: '2-digit', minute: '2-digit',
+      });
+      const size = item.filesize_mb != null ? `${item.filesize_mb} MB · ` : '';
+      return `
+        <div class="history-item">
+          <div class="history-icon">${icon}</div>
+          <div class="history-info">
+            <div class="history-title">${escHtml(item.filename)}</div>
+            <div class="history-meta">${size}${item.platform} · ${date}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch {
+    list.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><span class="empty-text">No se pudo cargar el historial.</span></div>';
+  }
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── PWA Install ─────────────────────────────────────────────────────────── */
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+
+function installPwa() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(() => { deferredInstallPrompt = null; });
+  } else {
+    alert('Para instalar:\n• Chrome/Android: Menú → "Agregar a pantalla de inicio"\n• Safari/iOS: Compartir → "Agregar a pantalla de inicio"');
+  }
+}
+
+/* ── Service Worker ──────────────────────────────────────────────────────── */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+/* ── Init ────────────────────────────────────────────────────────────────── */
+loadStatus();
+loadHomeStats();
+// Refresh status every 30s
+setInterval(loadStatus, 30_000);

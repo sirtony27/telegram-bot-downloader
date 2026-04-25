@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Descargá videos de YouTube, TikTok, Instagram y más. Convertí stickers para WhatsApp.">
+  <title>MediaHub</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-logo">
+      <img src="/icon.svg" alt="MediaHub">
+      <span>MediaHub</span>
+    </div>
+    <div id="status-dot" class="status-dot" title="Estado del bot"></div>
+  </header>
+
+  <!-- ── Tab Content ─────────────────────────────────────────────────────── -->
+  <main class="content">
+
+    <!-- HOME ─────────────────────────────────────────────────────────────── -->
+    <section id="page-home" class="tab-page active">
+      <p class="section-title">Panel de control</p>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-value" id="stat-downloads">—</span>
+          <span class="stat-label">Total descargas</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" id="stat-uptime">—</span>
+          <span class="stat-label">Uptime (min)</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Estado del servidor</div>
+        <div class="info-row">
+          <span class="ir-label">Bot Telegram</span>
+          <span class="ir-value" id="info-bot">Cargando…</span>
+        </div>
+        <div class="info-row">
+          <span class="ir-label">Web server</span>
+          <span class="ir-value" style="color:var(--success)">Online ✓</span>
+        </div>
+        <div class="info-row">
+          <span class="ir-label">Versión</span>
+          <span class="ir-value">1.0.0</span>
+        </div>
+      </div>
+
+      <div class="card-title" style="margin-bottom:12px">Acciones rápidas</div>
+      <div class="quick-actions">
+        <button class="quick-btn" onclick="navigate('downloader')">
+          <span class="qb-icon">📥</span>
+          <span class="qb-label">Descargar</span>
+          <span class="qb-sub">YouTube, TikTok…</span>
+        </button>
+        <button class="quick-btn" onclick="navigate('stickers')">
+          <span class="qb-icon">🎨</span>
+          <span class="qb-label">Stickers</span>
+          <span class="qb-sub">Para WhatsApp</span>
+        </button>
+        <button class="quick-btn" onclick="navigate('history')">
+          <span class="qb-icon">📋</span>
+          <span class="qb-label">Historial</span>
+          <span class="qb-sub">Últimas descargas</span>
+        </button>
+        <button class="quick-btn" onclick="installPwa()">
+          <span class="qb-icon">📲</span>
+          <span class="qb-label">Instalar</span>
+          <span class="qb-sub">Agregar a pantalla</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- DOWNLOADER ───────────────────────────────────────────────────────── -->
+    <section id="page-downloader" class="tab-page">
+      <p class="section-title">Descargar video</p>
+      <p class="section-subtitle">YouTube, TikTok, Instagram, Twitter y más</p>
+
+      <div class="input-wrap">
+        <span class="input-icon">🔗</span>
+        <input type="url" id="dl-url" placeholder="Pegá el link del video…" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+
+      <div id="dl-badge" class="platform-badge">🌐 Pegá una URL para detectar la plataforma</div>
+
+      <button class="btn btn-primary" id="dl-btn" onclick="startDownload()">
+        <span>Descargar</span>
+      </button>
+
+      <div id="dl-result" class="result-card">
+        <div class="result-title">✅ ¡Listo!</div>
+        <div class="result-name" id="dl-title"></div>
+        <a id="dl-link" class="btn btn-success" style="text-decoration:none; margin-top:0" download>
+          ⬇️ Descargar archivo
+        </a>
+      </div>
+      <div id="dl-error" class="error-card"></div>
+    </section>
+
+    <!-- STICKERS ─────────────────────────────────────────────────────────── -->
+    <section id="page-stickers" class="tab-page">
+      <p class="section-title">Convertir sticker</p>
+      <p class="section-subtitle">Subí una imagen y elegí el formato de salida</p>
+
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="toggle-wa" onclick="setStickerType('whatsapp')">
+          💬 Para WhatsApp
+        </button>
+        <button class="toggle-btn" id="toggle-tg" onclick="setStickerType('telegram')">
+          ✈️ Para Telegram
+        </button>
+      </div>
+
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="sticker-file" accept="image/*" onchange="onFileSelected()">
+        <span class="upload-icon">🖼️</span>
+        <div class="upload-text">Tocá para elegir una imagen</div>
+        <div class="upload-sub">PNG, JPG, WEBP, GIF — máx 10 MB</div>
+      </div>
+
+      <img id="sticker-preview" class="preview-img" alt="Preview">
+
+      <button class="btn btn-primary" id="sticker-btn" onclick="convertSticker()" disabled>
+        <span>Convertir</span>
+      </button>
+
+      <div id="sticker-result" class="result-card">
+        <div class="result-title">✅ Sticker listo</div>
+        <div class="result-name" id="sticker-size"></div>
+        <button class="btn btn-accent" id="sticker-share" onclick="shareSticker()">
+          🔗 Compartir a WASticker
+        </button>
+        <a id="sticker-link" class="btn btn-ghost" style="text-decoration:none; margin-top:0" download="sticker.webp">
+          ⬇️ Descargar .webp
+        </a>
+      </div>
+      <div id="sticker-error" class="error-card"></div>
+    </section>
+
+    <!-- HISTORY ──────────────────────────────────────────────────────────── -->
+    <section id="page-history" class="tab-page">
+      <p class="section-title">Historial</p>
+      <p class="section-subtitle">Últimas 30 descargas registradas</p>
+      <div id="history-list">
+        <div class="empty-state">
+          <span class="empty-icon">⏳</span>
+          <span class="empty-text">Cargando historial…</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Bottom Tab Bar ──────────────────────────────────────────────────── -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" id="tab-home" onclick="navigate('home')">
+      <span class="tab-icon">🏠</span>
+      <span class="tab-label">Inicio</span>
+    </button>
+    <button class="tab-btn" id="tab-downloader" onclick="navigate('downloader')">
+      <span class="tab-icon">📥</span>
+      <span class="tab-label">Descargar</span>
+    </button>
+    <button class="tab-btn" id="tab-stickers" onclick="navigate('stickers')">
+      <span class="tab-icon">🎨</span>
+      <span class="tab-label">Stickers</span>
+    </button>
+    <button class="tab-btn" id="tab-history" onclick="navigate('history')">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">Historial</span>
+    </button>
+  </nav>
+
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

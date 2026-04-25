@@ -86,4 +86,13 @@ export const config = {
    * Los bots pueden enviar hasta 50 MB usando InputFile local.
    */
   telegramMaxBytes: 50 * 1024 * 1024,
+
+  /** Puerto del servidor web (PWA + API). */
+  webPort: parseInt(process.env.WEB_PORT || '3000', 10),
+
+  /**
+   * URL base pública del servidor web. Se usa para generar links de descarga.
+   * En producción: la IP pública o dominio del servidor.
+   */
+  webBaseUrl: process.env.WEB_BASE_URL || 'http://localhost:3000',
 };

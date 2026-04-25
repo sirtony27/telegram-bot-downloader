@@ -3,6 +3,7 @@ import { Bot, GrammyError, HttpError } from 'grammy';
 import { config } from './config.js';
 import { logger } from './utils/logger.js';
 import { registerHandlers } from './handlers/messageHandler.js';
+import { createWebServer } from './web/server.js';
 
 /**
  * Entry point del bot de Telegram.
@@ -49,12 +50,19 @@ async function startBot() {
   ]);
 
   // Arrancar long polling
+  let botInfo;
   bot.start({
-    onStart: (botInfo) => {
-      logger.info(`[index] Bot iniciado: @${botInfo.username}`);
+    onStart: (info) => {
+      botInfo = info;
+      logger.info(`[index] Bot iniciado: @${info.username}`);
       logger.info(`[index] Usuario autorizado ID: ${config.ownerChatId}`);
       logger.info('[index] Escuchando mensajes... (Ctrl+C para detener)');
     },
+  });
+
+  // Arrancar servidor web (PWA + API) en paralelo
+  createWebServer(botInfo).catch(err => {
+    logger.error('[index] Error al iniciar servidor web:', err);
   });
 }
 

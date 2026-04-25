@@ -1,0 +1,13 @@
+{
+  "name": "MediaHub Bot",
+  "short_name": "MediaHub",
+  "description": "Descargá videos y convertí stickers para WhatsApp",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07071a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
