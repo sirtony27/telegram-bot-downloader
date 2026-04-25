@@ -270,7 +270,6 @@ export async function createWebServer(getBotUsername = () => undefined) {
         success: true,
         downloadUrl: buildPublicFileUrl(req, finalFilename),
         filename: finalFilename,
-        platform,
       });
     } catch (err) {
       logger.error("[web/download] Error:", err.message);
